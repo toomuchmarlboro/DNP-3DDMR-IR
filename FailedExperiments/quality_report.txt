@@ -1,0 +1,24 @@
+DMR-IR PATIENT MANIFEST — QUALITY REPORT
+==================================================
+Total patients            : 268
+  Benign                  : 171 (63.8%)
+  Malignant               : 97  (36.2%)
+
+PIPELINE READINESS
+  Has seg mask            : 268  (100.0%)
+  Ready stereo (≥3 views) : 260  (97.0%)
+  Ready dynamic (≥10 fr.) : 0    (0.0%)
+  Ready FULL pipeline     : 0   (0.0%)
+
+STATIC VIEW COMPLETENESS (per patient)
+  idx_frontal         : 263/268 (98.1%)
+  idx_right_45        : 252/268 (94.0%)
+  idx_right_90        : 258/268 (96.3%)
+  idx_left_45         : 254/268 (94.8%)
+  idx_left_90         : 256/268 (95.5%)
+
+DYNAMIC FRAME COUNTS
+  Mean  : 0.0
+  Median: 0.0
+  Min   : 0
+  Max   : 0

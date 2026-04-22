@@ -1,0 +1,13 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Run Phase 0 Manifest",
+			"type": "shell",
+			"command": "python",
+			"args": [
+				"phase0_manifest.py"
+			]
+		}
+	]
+}

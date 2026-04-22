@@ -1,0 +1,653 @@
+Patient_ID,Filename,View,P1_X,P1_Y,P2_X,P2_Y,P3_X,P3_Y
+Patient_1,Anterior (Front)_edge.png,0,62,253,126,166,191,252
+Patient_1,Left Lateral (90Â°)_edge.png,-90,36,192,60,229,99,194
+Patient_1,Left Oblique (45Â°)_edge.png,-45,101,234,126,230,128,229
+Patient_1,Right Lateral (90Â°)_edge.png,90,203,207,174,233,137,209
+Patient_1,Right Oblique (45Â°)_edge.png,45,126,240,127,240,142,247
+Patient_10,Anterior (Front)_edge.png,0,96,143,97,61,200,179
+Patient_10,Left Lateral (90Â°)_edge.png,-90,74,148,109,179,132,152
+Patient_10,Left Oblique (45Â°)_edge.png,-45,125,171,126,171,128,171
+Patient_10,Right Lateral (90Â°)_edge.png,90,189,146,181,161,180,157
+Patient_100,Anterior (Front)_edge.png,0,54,237,118,185,165,251
+Patient_100,Left Lateral (90Â°)_edge.png,-90,70,201,89,227,142,202
+Patient_100,Left Oblique (45Â°)_edge.png,-45,125,235,126,235,133,236
+Patient_100,Right Lateral (90Â°)_edge.png,90,189,205,161,234,122,208
+Patient_100,Right Oblique (45Â°)_edge.png,45,114,218,170,177,205,235
+Patient_104,Anterior (Front)_edge.png,0,59,179,120,133,177,184
+Patient_105,Anterior (Front)_edge.png,0,69,203,129,145,192,213
+Patient_106,Anterior (Front)_edge.png,0,42,217,129,137,201,240
+Patient_106,Left Lateral (90Â°)_edge.png,-90,60,209,81,227,127,210
+Patient_106,Left Oblique (45Â°)_edge.png,-45,127,218,128,219,161,240
+Patient_106,Right Lateral (90Â°)_edge.png,90,197,172,160,206,103,185
+Patient_106,Right Oblique (45Â°)_edge.png,45,121,218,122,218,129,219
+Patient_107,Anterior (Front)_edge.png,0,52,203,127,139,185,189
+Patient_107,Left Lateral (90Â°)_edge.png,-90,59,152,110,185,131,169
+Patient_107,Left Oblique (45Â°)_edge.png,-45,44,194,72,153,128,180
+Patient_107,Right Lateral (90Â°)_edge.png,90,201,175,169,202,132,176
+Patient_107,Right Oblique (45Â°)_edge.png,45,109,201,110,201,128,201
+Patient_108,Anterior (Front)_edge.png,0,49,190,123,79,188,209
+Patient_108,Left Lateral (90Â°)_edge.png,-90,48,170,85,210,127,171
+Patient_108,Left Oblique (45Â°)_edge.png,-45,122,209,123,209,128,209
+Patient_108,Right Lateral (90Â°)_edge.png,90,170,166,129,198,106,167
+Patient_108,Right Oblique (45Â°)_edge.png,45,98,193,165,142,192,196
+Patient_109,Anterior (Front)_edge.png,0,98,181,155,77,189,208
+Patient_109,Left Lateral (90Â°)_edge.png,-90,64,189,74,207,111,190
+Patient_109,Left Oblique (45Â°)_edge.png,-45,126,203,127,203,128,203
+Patient_109,Right Lateral (90Â°)_edge.png,90,180,161,155,179,132,163
+Patient_110,Anterior (Front)_edge.png,0,80,223,134,181,174,225
+Patient_110,Left Lateral (90Â°)_edge.png,-90,55,191,70,213,117,194
+Patient_110,Left Oblique (45Â°)_edge.png,-45,113,211,114,211,128,211
+Patient_110,Right Lateral (90Â°)_edge.png,90,199,197,176,217,145,198
+Patient_110,Right Oblique (45Â°)_edge.png,45,113,207,126,206,128,206
+Patient_111,Anterior (Front)_edge.png,0,49,214,119,163,201,224
+Patient_111,Left Lateral (90Â°)_edge.png,-90,51,175,89,217,142,185
+Patient_111,Left Oblique (45Â°)_edge.png,-45,127,197,128,197,165,219
+Patient_111,Right Lateral (90Â°)_edge.png,90,214,193,181,210,161,196
+Patient_111,Right Oblique (45Â°)_edge.png,45,102,221,125,219,128,219
+Patient_113,Anterior (Front)_edge.png,0,40,204,118,127,180,191
+Patient_113,Left Lateral (90Â°)_edge.png,-90,69,168,97,200,148,171
+Patient_113,Left Oblique (45Â°)_edge.png,-45,52,221,95,156,142,215
+Patient_113,Right Lateral (90Â°)_edge.png,90,211,180,172,217,129,182
+Patient_113,Right Oblique (45Â°)_edge.png,45,97,237,127,232,128,231
+Patient_115,Anterior (Front)_edge.png,0,39,226,126,141,201,208
+Patient_115,Left Lateral (90Â°)_edge.png,-90,43,168,101,209,152,169
+Patient_115,Left Oblique (45Â°)_edge.png,-45,126,200,127,200,143,204
+Patient_115,Right Lateral (90Â°)_edge.png,90,236,173,193,210,139,175
+Patient_115,Right Oblique (45Â°)_edge.png,45,102,222,127,217,128,217
+Patient_116,Anterior (Front)_edge.png,0,66,197,125,151,173,199
+Patient_116,Left Lateral (90Â°)_edge.png,-90,45,164,78,203,122,169
+Patient_116,Left Oblique (45Â°)_edge.png,-45,124,195,125,195,137,198
+Patient_116,Right Lateral (90Â°)_edge.png,90,201,170,162,209,112,177
+Patient_116,Right Oblique (45Â°)_edge.png,45,97,209,123,205,128,204
+Patient_12,Anterior (Front)_edge.png,0,65,219,127,181,182,221
+Patient_12,Left Lateral (90Â°)_edge.png,-90,50,162,82,210,152,181
+Patient_12,Left Oblique (45Â°)_edge.png,-45,125,208,126,208,140,211
+Patient_12,Right Lateral (90Â°)_edge.png,90,209,182,172,213,103,209
+Patient_12,Right Oblique (45Â°)_edge.png,45,126,217,127,217,128,217
+Patient_121,Anterior (Front)_edge.png,0,45,211,118,136,191,204
+Patient_121,Left Lateral (90Â°)_edge.png,-90,31,152,62,189,140,157
+Patient_121,Left Oblique (45Â°)_edge.png,-45,39,178,73,114,137,177
+Patient_121,Right Lateral (90Â°)_edge.png,90,207,145,161,186,103,174
+Patient_121,Right Oblique (45Â°)_edge.png,45,77,189,157,110,213,172
+Patient_125,Anterior (Front)_edge.png,0,63,192,123,147,177,198
+Patient_125,Left Lateral (90Â°)_edge.png,-90,46,164,66,187,145,177
+Patient_125,Left Oblique (45Â°)_edge.png,-45,51,179,97,133,153,188
+Patient_125,Right Lateral (90Â°)_edge.png,90,185,147,138,178,113,168
+Patient_125,Right Oblique (45Â°)_edge.png,45,110,178,162,135,193,183
+Patient_126,Anterior (Front)_edge.png,0,41,205,121,153,182,202
+Patient_126,Left Lateral (90Â°)_edge.png,-90,36,172,70,211,114,190
+Patient_126,Left Oblique (45Â°)_edge.png,-45,126,201,127,201,145,208
+Patient_126,Right Lateral (90Â°)_edge.png,90,166,170,114,214,103,209
+Patient_126,Right Oblique (45Â°)_edge.png,45,66,206,127,195,128,195
+Patient_127,Anterior (Front)_edge.png,0,64,205,127,172,179,206
+Patient_127,Left Lateral (90Â°)_edge.png,-90,37,191,50,213,104,192
+Patient_127,Left Oblique (45Â°)_edge.png,-45,121,201,122,201,128,201
+Patient_127,Right Lateral (90Â°)_edge.png,90,181,192,158,213,128,193
+Patient_127,Right Oblique (45Â°)_edge.png,45,122,202,123,202,128,202
+Patient_129,Anterior (Front)_edge.png,0,61,206,62,93,191,210
+Patient_129,Left Lateral (90Â°)_edge.png,-90,67,169,87,201,138,186
+Patient_129,Left Oblique (45Â°)_edge.png,-45,123,199,124,199,148,209
+Patient_129,Right Lateral (90Â°)_edge.png,90,203,176,161,203,123,177
+Patient_129,Right Oblique (45Â°)_edge.png,45,95,207,127,203,128,203
+Patient_13,Anterior (Front)_edge.png,0,60,222,127,158,183,216
+Patient_13,Left Lateral (90Â°)_edge.png,-90,52,192,74,219,123,194
+Patient_13,Left Oblique (45Â°)_edge.png,-45,121,227,122,227,133,228
+Patient_13,Right Lateral (90Â°)_edge.png,90,206,199,177,229,135,200
+Patient_13,Right Oblique (45Â°)_edge.png,45,118,233,126,232,128,232
+Patient_130,Anterior (Front)_edge.png,0,42,187,118,143,189,200
+Patient_130,Left Lateral (90Â°)_edge.png,-90,53,168,142,207,152,194
+Patient_130,Left Oblique (45Â°)_edge.png,-45,126,189,127,189,141,196
+Patient_130,Right Lateral (90Â°)_edge.png,90,180,166,127,184,103,177
+Patient_130,Right Oblique (45Â°)_edge.png,45,82,187,159,143,202,191
+Patient_131,Anterior (Front)_edge.png,0,81,192,121,161,150,203
+Patient_131,Left Lateral (90Â°)_edge.png,-90,69,157,104,205,147,164
+Patient_131,Left Oblique (45Â°)_edge.png,-45,126,195,127,195,149,203
+Patient_131,Right Lateral (90Â°)_edge.png,90,189,158,158,181,147,164
+Patient_131,Right Oblique (45Â°)_edge.png,45,113,187,114,187,128,187
+Patient_135,Anterior (Front)_edge.png,0,49,247,127,141,200,222
+Patient_135,Left Lateral (90Â°)_edge.png,-90,25,192,57,225,120,194
+Patient_135,Left Oblique (45Â°)_edge.png,-45,39,214,81,132,139,216
+Patient_135,Right Lateral (90Â°)_edge.png,90,195,199,160,234,113,200
+Patient_135,Right Oblique (45Â°)_edge.png,45,125,228,126,228,129,229
+Patient_136,Anterior (Front)_edge.png,0,57,235,134,165,193,230
+Patient_136,Left Lateral (90Â°)_edge.png,-90,54,202,80,233,133,204
+Patient_136,Left Oblique (45Â°)_edge.png,-45,48,214,99,89,152,223
+Patient_136,Right Lateral (90Â°)_edge.png,90,240,209,206,237,165,210
+Patient_136,Right Oblique (45Â°)_edge.png,45,96,222,127,216,128,215
+Patient_137,Anterior (Front)_edge.png,0,61,206,121,133,173,207
+Patient_137,Left Lateral (90Â°)_edge.png,-90,78,188,89,206,123,189
+Patient_137,Left Oblique (45Â°)_edge.png,-45,127,204,128,204,129,205
+Patient_137,Right Lateral (90Â°)_edge.png,90,185,182,165,201,140,183
+Patient_137,Right Oblique (45Â°)_edge.png,45,101,195,151,125,198,204
+Patient_141,Anterior (Front)_edge.png,0,121,192,122,192,128,192
+Patient_141,Left Lateral (90Â°)_edge.png,-90,91,151,105,186,133,154
+Patient_141,Right Lateral (90Â°)_edge.png,90,153,145,150,145,149,144
+Patient_141,Right Oblique (45Â°)_edge.png,45,116,187,117,187,128,187
+Patient_143,Anterior (Front)_edge.png,0,62,224,126,157,180,225
+Patient_143,Left Lateral (90Â°)_edge.png,-90,36,196,58,222,120,197
+Patient_143,Left Oblique (45Â°)_edge.png,-45,125,225,126,225,130,226
+Patient_143,Right Lateral (90Â°)_edge.png,90,199,193,165,223,112,194
+Patient_143,Right Oblique (45Â°)_edge.png,45,89,221,149,161,186,219
+Patient_144,Anterior (Front)_edge.png,0,65,216,131,164,173,209
+Patient_144,Left Lateral (90Â°)_edge.png,-90,74,184,98,217,139,186
+Patient_144,Left Oblique (45Â°)_edge.png,-45,56,210,97,161,144,201
+Patient_144,Right Lateral (90Â°)_edge.png,90,173,190,150,215,116,191
+Patient_144,Right Oblique (45Â°)_edge.png,45,117,228,118,228,128,227
+Patient_145,Anterior (Front)_edge.png,0,42,218,121,133,200,207
+Patient_145,Left Lateral (90Â°)_edge.png,-90,60,168,90,207,152,203
+Patient_145,Left Oblique (45Â°)_edge.png,-45,44,201,45,131,142,198
+Patient_145,Right Lateral (90Â°)_edge.png,90,197,175,103,223,103,223
+Patient_145,Right Oblique (45Â°)_edge.png,45,40,205,161,131,213,195
+Patient_146,Anterior (Front)_edge.png,0,39,211,126,137,189,208
+Patient_146,Left Lateral (90Â°)_edge.png,-90,42,173,92,215,152,185
+Patient_146,Left Oblique (45Â°)_edge.png,-45,126,201,127,201,128,201
+Patient_146,Right Lateral (90Â°)_edge.png,90,189,176,136,208,109,184
+Patient_146,Right Oblique (45Â°)_edge.png,45,102,202,127,199,128,199
+Patient_148,Anterior (Front)_edge.png,0,59,196,127,137,184,195
+Patient_148,Left Lateral (90Â°)_edge.png,-90,54,165,71,195,119,166
+Patient_148,Left Oblique (45Â°)_edge.png,-45,52,189,90,145,137,191
+Patient_148,Right Lateral (90Â°)_edge.png,90,176,167,144,198,105,169
+Patient_148,Right Oblique (45Â°)_edge.png,45,102,194,127,187,128,187
+Patient_149,Anterior (Front)_edge.png,0,61,223,134,153,192,218
+Patient_149,Left Lateral (90Â°)_edge.png,-90,48,208,110,238,123,209
+Patient_149,Left Oblique (45Â°)_edge.png,-45,126,224,127,224,142,229
+Patient_149,Right Lateral (90Â°)_edge.png,90,202,186,159,220,136,193
+Patient_149,Right Oblique (45Â°)_edge.png,45,105,223,127,222,128,222
+Patient_15,Anterior (Front)_edge.png,0,75,216,129,174,169,211
+Patient_15,Left Lateral (90Â°)_edge.png,-90,48,168,67,199,85,170
+Patient_15,Left Oblique (45Â°)_edge.png,-45,125,204,126,204,132,206
+Patient_15,Right Lateral (90Â°)_edge.png,90,188,162,103,209,103,209
+Patient_150,Anterior (Front)_edge.png,0,46,185,121,119,190,191
+Patient_150,Left Lateral (90Â°)_edge.png,-90,58,176,78,195,134,177
+Patient_150,Left Oblique (45Â°)_edge.png,-45,126,187,127,187,134,189
+Patient_150,Right Lateral (90Â°)_edge.png,90,201,161,166,185,103,174
+Patient_150,Right Oblique (45Â°)_edge.png,45,117,180,120,179,128,179
+Patient_151,Anterior (Front)_edge.png,0,61,196,111,145,182,195
+Patient_151,Left Lateral (90Â°)_edge.png,-90,44,154,68,197,105,171
+Patient_151,Left Oblique (45Â°)_edge.png,-45,52,191,80,82,128,191
+Patient_151,Right Lateral (90Â°)_edge.png,90,193,171,134,210,103,188
+Patient_151,Right Oblique (45Â°)_edge.png,45,86,206,180,82,196,190
+Patient_152,Anterior (Front)_edge.png,0,48,201,126,115,197,205
+Patient_152,Left Lateral (90Â°)_edge.png,-90,71,169,100,207,152,193
+Patient_152,Left Oblique (45Â°)_edge.png,-45,126,191,127,191,138,195
+Patient_152,Right Lateral (90Â°)_edge.png,90,215,168,178,197,103,181
+Patient_152,Right Oblique (45Â°)_edge.png,45,118,193,119,193,128,193
+Patient_156,Anterior (Front)_edge.png,0,50,203,122,115,165,132
+Patient_156,Left Lateral (90Â°)_edge.png,-90,47,184,51,213,88,210
+Patient_156,Left Oblique (45Â°)_edge.png,-45,46,207,137,131,158,143
+Patient_156,Right Lateral (90Â°)_edge.png,90,209,196,174,219,103,205
+Patient_156,Right Oblique (45Â°)_edge.png,45,122,215,123,215,128,215
+Patient_158,Anterior (Front)_edge.png,0,66,191,126,145,180,195
+Patient_158,Left Lateral (90Â°)_edge.png,-90,39,157,62,186,124,165
+Patient_158,Left Oblique (45Â°)_edge.png,-45,56,187,89,145,148,191
+Patient_158,Right Lateral (90Â°)_edge.png,90,200,172,124,218,103,209
+Patient_158,Right Oblique (45Â°)_edge.png,45,45,221,107,194,128,194
+Patient_159,Anterior (Front)_edge.png,0,46,210,126,138,196,219
+Patient_159,Left Lateral (90Â°)_edge.png,-90,51,169,86,202,152,187
+Patient_159,Left Oblique (45Â°)_edge.png,-45,124,209,125,209,128,209
+Patient_159,Right Lateral (90Â°)_edge.png,90,199,186,162,217,103,190
+Patient_159,Right Oblique (45Â°)_edge.png,45,109,198,169,145,203,207
+Patient_16,Anterior (Front)_edge.png,0,64,214,106,181,164,230
+Patient_16,Left Lateral (90Â°)_edge.png,-90,33,207,50,229,87,209
+Patient_16,Left Oblique (45Â°)_edge.png,-45,86,226,127,215,128,215
+Patient_16,Right Lateral (90Â°)_edge.png,90,178,206,158,227,125,207
+Patient_16,Right Oblique (45Â°)_edge.png,45,113,216,161,168,193,220
+Patient_160,Anterior (Front)_edge.png,0,43,197,119,137,193,206
+Patient_160,Left Lateral (90Â°)_edge.png,-90,53,161,77,187,152,174
+Patient_160,Left Oblique (45Â°)_edge.png,-45,125,201,126,201,128,201
+Patient_160,Right Lateral (90Â°)_edge.png,90,182,152,134,178,103,169
+Patient_161,Anterior (Front)_edge.png,0,48,229,126,157,190,233
+Patient_161,Left Lateral (90Â°)_edge.png,-90,35,188,58,221,105,190
+Patient_161,Left Oblique (45Â°)_edge.png,-45,126,218,127,218,128,218
+Patient_161,Right Lateral (90Â°)_edge.png,90,191,176,156,213,107,177
+Patient_161,Right Oblique (45Â°)_edge.png,45,122,221,127,220,128,220
+Patient_163,Anterior (Front)_edge.png,0,42,227,127,131,209,216
+Patient_163,Left Lateral (90Â°)_edge.png,-90,42,179,77,215,126,180
+Patient_163,Left Oblique (45Â°)_edge.png,-45,125,216,126,216,128,217
+Patient_163,Right Lateral (90Â°)_edge.png,90,206,197,165,243,122,200
+Patient_164,Anterior (Front)_edge.png,0,61,220,129,156,188,222
+Patient_164,Left Lateral (90Â°)_edge.png,-90,44,181,125,205,147,193
+Patient_164,Left Oblique (45Â°)_edge.png,-45,118,209,119,209,128,209
+Patient_164,Right Lateral (90Â°)_edge.png,90,183,179,153,201,103,197
+Patient_164,Right Oblique (45Â°)_edge.png,45,97,207,145,156,178,201
+Patient_165,Anterior (Front)_edge.png,0,67,232,135,169,193,239
+Patient_165,Left Lateral (90Â°)_edge.png,-90,31,212,50,234,85,214
+Patient_165,Left Oblique (45Â°)_edge.png,-45,126,237,127,237,136,240
+Patient_165,Right Lateral (90Â°)_edge.png,90,205,210,184,230,157,211
+Patient_165,Right Oblique (45Â°)_edge.png,45,118,229,119,229,128,229
+Patient_168,Anterior (Front)_edge.png,0,46,221,125,125,197,233
+Patient_168,Left Lateral (90Â°)_edge.png,-90,61,200,93,239,149,202
+Patient_168,Left Oblique (45Â°)_edge.png,-45,125,225,126,225,137,227
+Patient_168,Right Lateral (90Â°)_edge.png,90,226,194,172,217,137,196
+Patient_168,Right Oblique (45Â°)_edge.png,45,126,209,127,209,145,214
+Patient_169,Anterior (Front)_edge.png,0,39,217,129,133,213,212
+Patient_169,Left Lateral (90Â°)_edge.png,-90,29,169,63,212,135,177
+Patient_169,Left Oblique (45Â°)_edge.png,-45,127,219,128,219,137,220
+Patient_169,Right Lateral (90Â°)_edge.png,90,196,176,118,213,103,209
+Patient_169,Right Oblique (45Â°)_edge.png,45,105,215,106,215,128,215
+Patient_17,Anterior (Front)_edge.png,0,90,204,126,168,182,201
+Patient_17,Left Lateral (90Â°)_edge.png,-90,58,177,120,207,152,185
+Patient_17,Left Oblique (45Â°)_edge.png,-45,125,198,126,198,146,206
+Patient_17,Right Lateral (90Â°)_edge.png,90,178,163,122,195,104,187
+Patient_17,Right Oblique (45Â°)_edge.png,45,114,193,115,193,146,195
+Patient_170,Anterior (Front)_edge.png,0,45,189,119,109,193,191
+Patient_170,Left Lateral (90Â°)_edge.png,-90,58,179,77,195,115,180
+Patient_170,Left Oblique (45Â°)_edge.png,-45,127,200,128,200,133,201
+Patient_170,Right Lateral (90Â°)_edge.png,90,205,174,177,193,142,175
+Patient_170,Right Oblique (45Â°)_edge.png,45,93,194,161,115,217,191
+Patient_171,Anterior (Front)_edge.png,0,59,203,129,154,181,199
+Patient_171,Left Lateral (90Â°)_edge.png,-90,62,166,75,186,114,167
+Patient_171,Left Oblique (45Â°)_edge.png,-45,63,187,77,170,128,177
+Patient_171,Right Lateral (90Â°)_edge.png,90,173,180,141,199,116,181
+Patient_171,Right Oblique (45Â°)_edge.png,45,126,182,127,182,143,188
+Patient_172,Anterior (Front)_edge.png,0,39,219,121,143,192,213
+Patient_172,Left Lateral (90Â°)_edge.png,-90,63,184,86,217,152,201
+Patient_172,Left Oblique (45Â°)_edge.png,-45,125,207,126,207,140,211
+Patient_172,Right Lateral (90Â°)_edge.png,90,206,189,166,223,103,201
+Patient_172,Right Oblique (45Â°)_edge.png,45,127,210,128,210,158,223
+Patient_173,Anterior (Front)_edge.png,0,43,223,173,77,205,229
+Patient_173,Left Lateral (90Â°)_edge.png,-90,65,198,97,238,152,209
+Patient_173,Left Oblique (45Â°)_edge.png,-45,122,213,123,213,129,214
+Patient_173,Right Lateral (90Â°)_edge.png,90,246,186,207,224,164,187
+Patient_173,Right Oblique (45Â°)_edge.png,45,122,222,123,222,128,222
+Patient_174,Anterior (Front)_edge.png,0,61,202,127,145,192,205
+Patient_174,Left Lateral (90Â°)_edge.png,-90,40,172,60,202,104,173
+Patient_174,Left Oblique (45Â°)_edge.png,-45,126,205,127,205,132,206
+Patient_174,Right Lateral (90Â°)_edge.png,90,208,171,178,195,149,172
+Patient_174,Right Oblique (45Â°)_edge.png,45,117,201,118,201,128,201
+Patient_177,Anterior (Front)_edge.png,0,71,227,135,153,189,231
+Patient_177,Left Lateral (90Â°)_edge.png,-90,49,187,64,221,119,188
+Patient_177,Left Oblique (45Â°)_edge.png,-45,124,226,125,226,129,227
+Patient_177,Right Lateral (90Â°)_edge.png,90,217,199,197,221,164,200
+Patient_177,Right Oblique (45Â°)_edge.png,45,126,226,127,226,138,229
+Patient_179,Anterior (Front)_edge.png,0,53,227,126,177,180,230
+Patient_179,Left Lateral (90Â°)_edge.png,-90,49,196,84,223,144,197
+Patient_179,Left Oblique (45Â°)_edge.png,-45,63,203,94,164,129,201
+Patient_179,Right Lateral (90Â°)_edge.png,90,235,208,203,227,144,209
+Patient_179,Right Oblique (45Â°)_edge.png,45,125,217,126,217,128,217
+Patient_18,Anterior (Front)_edge.png,0,41,241,122,169,197,238
+Patient_18,Left Lateral (90Â°)_edge.png,-90,60,218,86,238,123,219
+Patient_182,Anterior (Front)_edge.png,0,68,202,129,166,181,209
+Patient_182,Left Lateral (90Â°)_edge.png,-90,86,182,149,208,152,208
+Patient_182,Left Oblique (45Â°)_edge.png,-45,108,191,121,189,158,198
+Patient_182,Right Lateral (90Â°)_edge.png,90,189,171,109,196,103,195
+Patient_182,Right Oblique (45Â°)_edge.png,45,122,193,123,193,134,194
+Patient_185,Anterior (Front)_edge.png,0,109,185,149,159,198,217
+Patient_185,Left Lateral (90Â°)_edge.png,-90,61,128,91,188,152,141
+Patient_185,Left Oblique (45Â°)_edge.png,-45,126,190,127,190,150,201
+Patient_185,Right Lateral (90Â°)_edge.png,90,201,139,157,219,114,149
+Patient_188,Anterior (Front)_edge.png,0,39,214,134,127,214,219
+Patient_188,Left Lateral (90Â°)_edge.png,-90,38,182,69,217,152,185
+Patient_188,Left Oblique (45Â°)_edge.png,-45,126,215,127,215,133,217
+Patient_188,Right Lateral (90Â°)_edge.png,90,199,170,157,205,103,199
+Patient_188,Right Oblique (45Â°)_edge.png,45,100,221,125,217,128,217
+Patient_189,Left Lateral (90Â°)_edge.png,-90,42,187,73,232,152,198
+Patient_189,Right Oblique (45Â°)_edge.png,45,86,233,127,219,128,219
+Patient_19,Anterior (Front)_edge.png,0,70,222,129,164,181,232
+Patient_19,Left Lateral (90Â°)_edge.png,-90,60,196,73,232,113,198
+Patient_19,Left Oblique (45Â°)_edge.png,-45,73,234,126,169,128,169
+Patient_19,Right Lateral (90Â°)_edge.png,90,182,204,160,222,139,205
+Patient_19,Right Oblique (45Â°)_edge.png,45,125,231,166,203,178,235
+Patient_190,Anterior (Front)_edge.png,0,45,223,121,149,206,214
+Patient_190,Left Lateral (90Â°)_edge.png,-90,30,196,57,223,148,197
+Patient_190,Left Oblique (45Â°)_edge.png,-45,125,212,126,212,136,215
+Patient_190,Right Lateral (90Â°)_edge.png,90,204,205,159,227,122,206
+Patient_190,Right Oblique (45Â°)_edge.png,45,122,221,123,221,128,221
+Patient_192,Anterior (Front)_edge.png,0,54,227,121,149,158,209
+Patient_192,Left Lateral (90Â°)_edge.png,-90,74,100,141,121,152,113
+Patient_192,Right Lateral (90Â°)_edge.png,90,199,194,161,228,123,196
+Patient_192,Right Oblique (45Â°)_edge.png,45,125,214,126,214,141,218
+Patient_193,Left Lateral (90Â°)_edge.png,-90,56,168,129,207,152,206
+Patient_193,Right Oblique (45Â°)_edge.png,45,116,207,117,207,128,207
+Patient_194,Anterior (Front)_edge.png,0,68,165,110,133,133,145
+Patient_194,Left Lateral (90Â°)_edge.png,-90,50,138,77,153,94,139
+Patient_194,Right Lateral (90Â°)_edge.png,90,175,137,166,169,132,148
+Patient_194,Right Oblique (45Â°)_edge.png,45,122,113,127,112,181,157
+Patient_195,Anterior (Front)_edge.png,0,40,201,126,156,190,213
+Patient_195,Left Lateral (90Â°)_edge.png,-90,15,159,97,197,152,185
+Patient_195,Left Oblique (45Â°)_edge.png,-45,118,202,119,202,128,202
+Patient_195,Right Lateral (90Â°)_edge.png,90,237,158,197,190,103,166
+Patient_195,Right Oblique (45Â°)_edge.png,45,122,193,123,193,130,194
+Patient_197,Anterior (Front)_edge.png,0,57,251,127,204,128,202
+Patient_197,Left Lateral (90Â°)_edge.png,-90,49,208,77,211,126,209
+Patient_197,Left Oblique (45Â°)_edge.png,-45,126,200,128,199,151,209
+Patient_197,Right Lateral (90Â°)_edge.png,90,213,217,175,250,105,218
+Patient_197,Right Oblique (45Â°)_edge.png,45,105,252,127,246,128,245
+Patient_199,Anterior (Front)_edge.png,0,57,167,117,136,169,193
+Patient_199,Left Lateral (90Â°)_edge.png,-90,22,144,69,194,117,145
+Patient_199,Left Oblique (45Â°)_edge.png,-45,127,188,128,188,133,190
+Patient_199,Right Lateral (90Â°)_edge.png,90,170,150,154,174,130,151
+Patient_199,Right Oblique (45Â°)_edge.png,45,124,167,125,167,134,171
+Patient_20,Anterior (Front)_edge.png,0,46,243,129,173,197,240
+Patient_20,Left Lateral (90Â°)_edge.png,-90,32,193,57,229,117,209
+Patient_20,Left Oblique (45Â°)_edge.png,-45,85,222,108,93,128,205
+Patient_20,Right Lateral (90Â°)_edge.png,90,213,196,169,233,146,197
+Patient_20,Right Oblique (45Â°)_edge.png,45,126,175,127,175,163,224
+Patient_200,Anterior (Front)_edge.png,0,45,221,115,141,177,231
+Patient_200,Left Lateral (90Â°)_edge.png,-90,34,186,56,226,128,187
+Patient_200,Left Oblique (45Â°)_edge.png,-45,109,222,127,219,128,219
+Patient_200,Right Lateral (90Â°)_edge.png,90,218,200,190,221,158,201
+Patient_200,Right Oblique (45Â°)_edge.png,45,109,215,125,213,128,212
+Patient_201,Anterior (Front)_edge.png,0,126,169,127,169,178,213
+Patient_201,Left Lateral (90Â°)_edge.png,-90,35,156,117,217,152,210
+Patient_201,Left Oblique (45Â°)_edge.png,-45,126,197,127,197,189,205
+Patient_201,Right Lateral (90Â°)_edge.png,90,208,162,118,213,103,205
+Patient_201,Right Oblique (45Â°)_edge.png,45,80,211,125,200,128,200
+Patient_206,Anterior (Front)_edge.png,0,46,223,134,137,217,168
+Patient_206,Left Lateral (90Â°)_edge.png,-90,34,161,141,211,152,210
+Patient_206,Left Oblique (45Â°)_edge.png,-45,86,209,141,162,213,223
+Patient_206,Right Lateral (90Â°)_edge.png,90,231,172,103,209,103,209
+Patient_206,Right Oblique (45Â°)_edge.png,45,73,212,127,190,128,189
+Patient_21,Anterior (Front)_edge.png,0,53,229,126,153,197,228
+Patient_21,Left Lateral (90Â°)_edge.png,-90,33,199,50,234,107,201
+Patient_21,Left Oblique (45Â°)_edge.png,-45,65,225,138,188,142,193
+Patient_21,Right Lateral (90Â°)_edge.png,90,236,204,192,243,149,205
+Patient_21,Right Oblique (45Â°)_edge.png,45,127,188,128,188,178,229
+Patient_210,Anterior (Front)_edge.png,0,50,243,126,155,187,238
+Patient_210,Left Lateral (90Â°)_edge.png,-90,47,192,76,228,131,193
+Patient_210,Left Oblique (45Â°)_edge.png,-45,96,217,127,208,128,207
+Patient_210,Right Lateral (90Â°)_edge.png,90,204,197,161,239,115,198
+Patient_210,Right Oblique (45Â°)_edge.png,45,63,240,135,141,184,219
+Patient_212,Anterior (Front)_edge.png,0,57,240,153,125,196,229
+Patient_212,Left Lateral (90Â°)_edge.png,-90,42,203,71,240,130,204
+Patient_212,Left Oblique (45Â°)_edge.png,-45,126,226,127,226,138,231
+Patient_212,Right Lateral (90Â°)_edge.png,90,184,208,148,239,112,209
+Patient_212,Right Oblique (45Â°)_edge.png,45,86,237,127,223,128,222
+Patient_213,Anterior (Front)_edge.png,0,65,239,126,141,184,234
+Patient_213,Left Lateral (90Â°)_edge.png,-90,40,200,58,230,106,202
+Patient_213,Left Oblique (45Â°)_edge.png,-45,93,235,127,223,128,222
+Patient_213,Right Lateral (90Â°)_edge.png,90,220,218,201,228,180,219
+Patient_213,Right Oblique (45Â°)_edge.png,45,126,221,127,221,130,222
+Patient_216,Anterior (Front)_edge.png,0,57,220,119,145,186,226
+Patient_216,Left Lateral (90Â°)_edge.png,-90,78,172,106,214,152,181
+Patient_216,Left Oblique (45Â°)_edge.png,-45,127,212,128,212,146,218
+Patient_216,Right Lateral (90Â°)_edge.png,90,170,186,142,211,107,188
+Patient_216,Right Oblique (45Â°)_edge.png,45,103,215,161,141,201,212
+Patient_218,Anterior (Front)_edge.png,0,65,195,129,162,182,198
+Patient_218,Left Lateral (90Â°)_edge.png,-90,62,165,80,193,114,166
+Patient_218,Left Oblique (45Â°)_edge.png,-45,105,198,127,194,128,194
+Patient_218,Right Lateral (90Â°)_edge.png,90,215,172,190,198,166,179
+Patient_218,Right Oblique (45Â°)_edge.png,45,127,200,128,200,129,201
+Patient_219,Anterior (Front)_edge.png,0,39,230,118,161,206,235
+Patient_219,Left Lateral (90Â°)_edge.png,-90,53,196,86,237,152,217
+Patient_219,Left Oblique (45Â°)_edge.png,-45,127,217,128,217,168,239
+Patient_219,Right Lateral (90Â°)_edge.png,90,229,193,180,223,103,205
+Patient_219,Right Oblique (45Â°)_edge.png,45,109,233,127,232,128,232
+Patient_22,Anterior (Front)_edge.png,0,50,238,129,153,200,242
+Patient_22,Left Lateral (90Â°)_edge.png,-90,45,208,73,242,137,209
+Patient_22,Left Oblique (45Â°)_edge.png,-45,125,238,126,238,141,243
+Patient_22,Right Lateral (90Â°)_edge.png,90,224,202,185,247,125,207
+Patient_22,Right Oblique (45Â°)_edge.png,45,127,220,128,220,168,247
+Patient_220,Anterior (Front)_edge.png,0,127,198,128,199,150,219
+Patient_220,Left Lateral (90Â°)_edge.png,-90,64,183,117,216,152,194
+Patient_220,Left Oblique (45Â°)_edge.png,-45,98,212,134,93,141,142
+Patient_220,Right Lateral (90Â°)_edge.png,90,163,192,122,230,103,223
+Patient_220,Right Oblique (45Â°)_edge.png,45,118,219,119,219,128,219
+Patient_221,Anterior (Front)_edge.png,0,55,191,127,134,131,137
+Patient_221,Left Lateral (90Â°)_edge.png,-90,78,154,90,174,105,169
+Patient_221,Left Oblique (45Â°)_edge.png,-45,48,189,87,133,133,141
+Patient_221,Right Lateral (90Â°)_edge.png,90,127,80,103,129,103,129
+Patient_221,Right Oblique (45Â°)_edge.png,45,113,198,114,198,128,197
+Patient_222,Anterior (Front)_edge.png,0,46,219,126,133,190,209
+Patient_222,Left Lateral (90Â°)_edge.png,-90,41,178,64,205,110,180
+Patient_222,Left Oblique (45Â°)_edge.png,-45,39,203,81,150,129,203
+Patient_222,Right Lateral (90Â°)_edge.png,90,212,192,173,219,142,193
+Patient_222,Right Oblique (45Â°)_edge.png,45,124,222,125,222,128,222
+Patient_224,Anterior (Front)_edge.png,0,44,187,120,125,193,180
+Patient_224,Left Lateral (90Â°)_edge.png,-90,49,144,81,178,141,146
+Patient_224,Left Oblique (45Â°)_edge.png,-45,127,188,128,188,140,193
+Patient_224,Right Lateral (90Â°)_edge.png,90,186,159,141,187,117,164
+Patient_224,Right Oblique (45Â°)_edge.png,45,114,197,117,196,128,195
+Patient_225,Anterior (Front)_edge.png,0,46,206,122,141,176,199
+Patient_225,Left Lateral (90Â°)_edge.png,-90,60,157,104,207,152,161
+Patient_225,Left Oblique (45Â°)_edge.png,-45,125,198,126,198,128,198
+Patient_225,Right Lateral (90Â°)_edge.png,90,204,149,145,207,117,180
+Patient_225,Right Oblique (45Â°)_edge.png,45,112,205,127,203,128,203
+Patient_226,Anterior (Front)_edge.png,0,64,230,128,148,181,235
+Patient_226,Left Lateral (90Â°)_edge.png,-90,52,207,65,237,115,208
+Patient_226,Left Oblique (45Â°)_edge.png,-45,98,247,127,236,128,235
+Patient_226,Right Lateral (90Â°)_edge.png,90,212,198,190,230,148,199
+Patient_226,Right Oblique (45Â°)_edge.png,45,81,221,137,143,177,226
+Patient_23,Anterior (Front)_edge.png,0,52,206,127,127,202,210
+Patient_23,Left Lateral (90Â°)_edge.png,-90,81,180,146,209,152,208
+Patient_23,Right Lateral (90Â°)_edge.png,90,193,166,109,207,103,205
+Patient_233,Anterior (Front)_edge.png,0,77,178,135,129,175,175
+Patient_233,Left Lateral (90Â°)_edge.png,-90,95,154,111,175,149,155
+Patient_233,Left Oblique (45Â°)_edge.png,-45,73,171,106,141,142,171
+Patient_233,Right Lateral (90Â°)_edge.png,90,191,151,169,176,137,152
+Patient_233,Right Oblique (45Â°)_edge.png,45,114,169,158,134,185,171
+Patient_234,Anterior (Front)_edge.png,0,94,166,138,127,180,170
+Patient_234,Left Lateral (90Â°)_edge.png,-90,82,144,100,169,128,145
+Patient_234,Left Oblique (45Â°)_edge.png,-45,125,176,126,176,128,176
+Patient_234,Right Lateral (90Â°)_edge.png,90,179,141,153,165,116,145
+Patient_234,Right Oblique (45Â°)_edge.png,45,121,168,161,134,182,172
+Patient_235,Anterior (Front)_edge.png,0,53,201,125,146,181,185
+Patient_235,Left Lateral (90Â°)_edge.png,-90,68,164,122,193,152,190
+Patient_235,Left Oblique (45Â°)_edge.png,-45,49,198,89,153,145,189
+Patient_235,Right Lateral (90Â°)_edge.png,90,209,171,181,198,141,172
+Patient_235,Right Oblique (45Â°)_edge.png,45,125,187,126,187,146,194
+Patient_236,Anterior (Front)_edge.png,0,39,209,100,78,177,190
+Patient_236,Left Lateral (90Â°)_edge.png,-90,32,160,54,197,101,161
+Patient_236,Left Oblique (45Â°)_edge.png,-45,125,191,126,191,140,195
+Patient_236,Right Lateral (90Â°)_edge.png,90,168,158,129,190,103,170
+Patient_236,Right Oblique (45Â°)_edge.png,45,101,188,169,148,202,188
+Patient_238,Anterior (Front)_edge.png,0,44,214,125,152,193,200
+Patient_238,Left Lateral (90Â°)_edge.png,-90,49,184,83,215,133,199
+Patient_238,Left Oblique (45Â°)_edge.png,-45,69,205,118,149,180,207
+Patient_238,Right Lateral (90Â°)_edge.png,90,191,192,146,221,103,204
+Patient_238,Right Oblique (45Â°)_edge.png,45,102,214,124,211,128,211
+Patient_239,Anterior (Front)_edge.png,0,39,158,54,45,210,159
+Patient_239,Left Lateral (90Â°)_edge.png,-90,58,124,93,161,152,139
+Patient_239,Left Oblique (45Â°)_edge.png,-45,117,171,118,171,128,171
+Patient_239,Right Lateral (90Â°)_edge.png,90,218,126,178,162,121,128
+Patient_239,Right Oblique (45Â°)_edge.png,45,121,175,122,175,128,175
+Patient_243,Anterior (Front)_edge.png,0,57,236,113,185,163,232
+Patient_243,Left Lateral (90Â°)_edge.png,-90,44,209,67,234,91,211
+Patient_243,Right Lateral (90Â°)_edge.png,90,173,215,140,229,125,216
+Patient_243,Right Oblique (45Â°)_edge.png,45,96,217,115,209,134,237
+Patient_244,Anterior (Front)_edge.png,0,48,214,122,117,182,221
+Patient_244,Left Lateral (90Â°)_edge.png,-90,37,180,60,207,107,182
+Patient_244,Left Oblique (45Â°)_edge.png,-45,127,207,128,207,154,214
+Patient_244,Right Lateral (90Â°)_edge.png,90,195,166,156,206,111,168
+Patient_244,Right Oblique (45Â°)_edge.png,45,95,212,127,207,128,207
+Patient_256,Anterior (Front)_edge.png,0,120,164,121,93,181,204
+Patient_256,Left Lateral (90Â°)_edge.png,-90,48,49,57,77,152,74
+Patient_256,Left Oblique (45Â°)_edge.png,-45,127,190,128,191,142,199
+Patient_256,Right Lateral (90Â°)_edge.png,90,168,153,149,153,138,144
+Patient_256,Right Oblique (45Â°)_edge.png,45,125,154,141,149,181,194
+Patient_258,Anterior (Front)_edge.png,0,85,209,138,149,205,204
+Patient_258,Left Lateral (90Â°)_edge.png,-90,52,160,65,190,152,177
+Patient_258,Left Oblique (45Â°)_edge.png,-45,125,182,131,177,132,183
+Patient_258,Right Lateral (90Â°)_edge.png,90,177,136,162,137,162,137
+Patient_26,Anterior (Front)_edge.png,0,69,239,122,189,177,234
+Patient_26,Left Lateral (90Â°)_edge.png,-90,82,211,106,238,152,214
+Patient_26,Left Oblique (45Â°)_edge.png,-45,127,238,128,238,135,240
+Patient_26,Right Lateral (90Â°)_edge.png,90,173,210,137,248,103,229
+Patient_26,Right Oblique (45Â°)_edge.png,45,125,237,126,237,134,239
+Patient_260,Anterior (Front)_edge.png,0,54,194,130,122,191,196
+Patient_260,Left Lateral (90Â°)_edge.png,-90,61,160,105,192,152,189
+Patient_260,Left Oblique (45Â°)_edge.png,-45,97,193,147,178,149,189
+Patient_260,Right Lateral (90Â°)_edge.png,90,183,158,145,179,121,160
+Patient_260,Right Oblique (45Â°)_edge.png,45,100,193,158,154,184,193
+Patient_266,Anterior (Front)_edge.png,0,49,221,133,141,195,241
+Patient_266,Left Lateral (90Â°)_edge.png,-90,58,171,100,248,152,213
+Patient_266,Left Oblique (45Â°)_edge.png,-45,126,237,127,237,148,251
+Patient_266,Right Lateral (90Â°)_edge.png,90,196,191,155,228,106,193
+Patient_266,Right Oblique (45Â°)_edge.png,45,89,227,203,146,205,233
+Patient_267,Anterior (Front)_edge.png,0,81,219,126,170,205,243
+Patient_267,Left Lateral (90Â°)_edge.png,-90,48,192,66,221,118,193
+Patient_267,Left Oblique (45Â°)_edge.png,-45,115,223,116,223,128,223
+Patient_267,Right Lateral (90Â°)_edge.png,90,212,192,186,217,157,193
+Patient_267,Right Oblique (45Â°)_edge.png,45,125,224,126,224,129,225
+Patient_268,Anterior (Front)_edge.png,0,81,200,125,171,166,209
+Patient_268,Left Lateral (90Â°)_edge.png,-90,56,164,83,219,121,181
+Patient_268,Left Oblique (45Â°)_edge.png,-45,94,209,129,185,131,189
+Patient_268,Right Lateral (90Â°)_edge.png,90,180,154,144,185,133,176
+Patient_268,Right Oblique (45Â°)_edge.png,45,122,63,123,61,217,212
+Patient_287,Anterior (Front)_edge.png,0,39,219,119,153,198,225
+Patient_287,Left Lateral (90Â°)_edge.png,-90,47,192,73,222,131,193
+Patient_287,Left Oblique (45Â°)_edge.png,-45,113,232,124,231,128,231
+Patient_287,Right Lateral (90Â°)_edge.png,90,210,213,181,237,141,214
+Patient_287,Right Oblique (45Â°)_edge.png,45,105,233,165,187,206,241
+Patient_312,Anterior (Front)_edge.png,0,64,170,126,117,184,166
+Patient_312,Left Lateral (90Â°)_edge.png,-90,52,154,68,174,152,162
+Patient_312,Left Oblique (45Â°)_edge.png,-45,97,170,161,133,194,168
+Patient_312,Right Lateral (90Â°)_edge.png,90,193,152,156,171,132,153
+Patient_312,Right Oblique (45Â°)_edge.png,45,65,167,133,117,192,165
+Patient_319,Anterior (Front)_edge.png,0,73,203,125,159,158,209
+Patient_319,Left Lateral (90Â°)_edge.png,-90,75,183,88,202,125,186
+Patient_319,Left Oblique (45Â°)_edge.png,-45,71,201,110,165,144,209
+Patient_319,Right Lateral (90Â°)_edge.png,90,159,170,105,191,103,189
+Patient_319,Right Oblique (45Â°)_edge.png,45,86,203,136,165,162,207
+Patient_32,Anterior (Front)_edge.png,0,48,226,133,168,174,209
+Patient_32,Left Lateral (90Â°)_edge.png,-90,39,188,133,224,152,218
+Patient_32,Left Oblique (45Â°)_edge.png,-45,98,217,141,214,152,217
+Patient_32,Right Lateral (90Â°)_edge.png,90,232,179,126,237,103,209
+Patient_32,Right Oblique (45Â°)_edge.png,45,57,222,94,215,128,217
+Patient_330,Anterior (Front)_edge.png,0,69,184,122,139,173,185
+Patient_330,Left Lateral (90Â°)_edge.png,-90,63,180,94,206,131,181
+Patient_330,Left Oblique (45Â°)_edge.png,-45,59,207,97,165,146,214
+Patient_330,Right Lateral (90Â°)_edge.png,90,190,166,164,185,145,168
+Patient_330,Right Oblique (45Â°)_edge.png,45,117,172,158,136,185,177
+Patient_342,Anterior (Front)_edge.png,0,93,148,132,95,134,117
+Patient_342,Left Lateral (90Â°)_edge.png,-90,74,185,90,197,147,186
+Patient_342,Left Oblique (45Â°)_edge.png,-45,125,196,126,196,128,195
+Patient_342,Right Lateral (90Â°)_edge.png,90,205,146,145,179,109,174
+Patient_342,Right Oblique (45Â°)_edge.png,45,94,157,113,151,186,190
+Patient_344,Anterior (Front)_edge.png,0,76,183,137,150,177,190
+Patient_344,Left Lateral (90Â°)_edge.png,-90,52,177,85,197,96,185
+Patient_344,Left Oblique (45Â°)_edge.png,-45,119,191,120,191,138,194
+Patient_344,Right Lateral (90Â°)_edge.png,90,156,173,124,186,105,174
+Patient_344,Right Oblique (45Â°)_edge.png,45,90,186,127,179,128,179
+Patient_346,Anterior (Front)_edge.png,0,74,178,123,150,165,183
+Patient_346,Left Lateral (90Â°)_edge.png,-90,56,157,77,181,97,158
+Patient_346,Left Oblique (45Â°)_edge.png,-45,109,189,150,160,177,195
+Patient_346,Right Lateral (90Â°)_edge.png,90,114,175,103,188,103,188
+Patient_346,Right Oblique (45Â°)_edge.png,45,109,190,124,189,128,188
+Patient_361,Anterior (Front)_edge.png,0,71,202,163,141,165,213
+Patient_361,Left Lateral (90Â°)_edge.png,-90,93,196,109,209,131,205
+Patient_361,Left Oblique (45Â°)_edge.png,-45,65,213,97,174,134,214
+Patient_361,Right Lateral (90Â°)_edge.png,90,203,194,180,218,138,196
+Patient_361,Right Oblique (45Â°)_edge.png,45,113,211,126,209,128,209
+Patient_368,Anterior (Front)_edge.png,0,63,204,127,148,160,179
+Patient_368,Left Lateral (90Â°)_edge.png,-90,65,144,150,185,152,185
+Patient_368,Left Oblique (45Â°)_edge.png,-45,39,191,81,143,129,179
+Patient_368,Right Lateral (90Â°)_edge.png,90,175,129,134,187,103,177
+Patient_368,Right Oblique (45Â°)_edge.png,45,104,199,127,198,128,198
+Patient_37,Anterior (Front)_edge.png,0,48,234,138,150,213,238
+Patient_37,Left Lateral (90Â°)_edge.png,-90,26,188,65,235,152,233
+Patient_37,Left Oblique (45Â°)_edge.png,-45,96,242,127,240,128,240
+Patient_37,Right Lateral (90Â°)_edge.png,90,218,196,103,232,103,232
+Patient_37,Right Oblique (45Â°)_edge.png,45,124,235,125,235,132,237
+Patient_384,Anterior (Front)_edge.png,0,87,187,122,161,156,209
+Patient_384,Left Lateral (90Â°)_edge.png,-90,70,209,91,211,102,210
+Patient_384,Left Oblique (45Â°)_edge.png,-45,101,146,110,78,141,149
+Patient_384,Right Lateral (90Â°)_edge.png,90,170,47,162,47,162,47
+Patient_393,Anterior (Front)_edge.png,0,70,139,195,89,197,173
+Patient_393,Left Lateral (90Â°)_edge.png,-90,101,102,110,129,152,129
+Patient_393,Left Oblique (45Â°)_edge.png,-45,94,209,95,209,128,209
+Patient_393,Right Lateral (90Â°)_edge.png,90,219,209,182,209,130,113
+Patient_393,Right Oblique (45Â°)_edge.png,45,124,133,125,133,128,133
+Patient_394,Anterior (Front)_edge.png,0,48,222,101,162,146,227
+Patient_394,Left Lateral (90Â°)_edge.png,-90,55,172,82,196,129,173
+Patient_394,Right Lateral (90Â°)_edge.png,90,187,193,170,201,153,194
+Patient_394,Right Oblique (45Â°)_edge.png,45,126,173,127,173,157,199
+Patient_397,Anterior (Front)_edge.png,0,70,205,129,147,181,206
+Patient_397,Left Lateral (90Â°)_edge.png,-90,45,180,126,209,139,185
+Patient_397,Left Oblique (45Â°)_edge.png,-45,106,202,125,201,128,201
+Patient_397,Right Lateral (90Â°)_edge.png,90,182,180,148,203,103,194
+Patient_397,Right Oblique (45Â°)_edge.png,45,110,202,127,201,128,201
+Patient_40,Anterior (Front)_edge.png,0,55,218,133,156,195,223
+Patient_40,Left Lateral (90Â°)_edge.png,-90,68,179,94,218,152,188
+Patient_40,Left Oblique (45Â°)_edge.png,-45,54,211,103,157,153,219
+Patient_40,Right Lateral (90Â°)_edge.png,90,141,187,103,217,103,217
+Patient_40,Right Oblique (45Â°)_edge.png,45,121,226,122,226,128,226
+Patient_401,Anterior (Front)_edge.png,0,65,203,138,156,194,206
+Patient_401,Left Lateral (90Â°)_edge.png,-90,62,166,93,212,152,184
+Patient_401,Left Oblique (45Â°)_edge.png,-45,121,208,122,208,128,207
+Patient_401,Right Lateral (90Â°)_edge.png,90,134,185,103,200,103,200
+Patient_401,Right Oblique (45Â°)_edge.png,45,55,183,121,49,162,207
+Patient_402,Anterior (Front)_edge.png,0,120,168,133,162,153,178
+Patient_402,Left Lateral (90Â°)_edge.png,-90,90,152,96,181,152,169
+Patient_402,Left Oblique (45Â°)_edge.png,-45,67,181,126,114,131,172
+Patient_402,Right Lateral (90Â°)_edge.png,90,186,145,173,158,146,146
+Patient_402,Right Oblique (45Â°)_edge.png,45,126,129,184,88,196,188
+Patient_408,Anterior (Front)_edge.png,0,92,193,124,177,166,203
+Patient_408,Left Lateral (90Â°)_edge.png,-90,64,170,84,200,108,181
+Patient_408,Left Oblique (45Â°)_edge.png,-45,114,206,127,193,133,197
+Patient_408,Right Lateral (90Â°)_edge.png,90,187,172,158,195,147,189
+Patient_408,Right Oblique (45Â°)_edge.png,45,127,177,128,177,142,199
+Patient_410,Anterior (Front)_edge.png,0,104,184,158,88,168,191
+Patient_410,Left Lateral (90Â°)_edge.png,-90,73,121,78,122,82,122
+Patient_410,Left Oblique (45Â°)_edge.png,-45,66,121,85,79,128,109
+Patient_410,Right Lateral (90Â°)_edge.png,90,187,142,178,145,171,143
+Patient_410,Right Oblique (45Â°)_edge.png,45,126,121,127,121,186,179
+Patient_424,Anterior (Front)_edge.png,0,127,130,128,132,173,177
+Patient_424,Left Lateral (90Â°)_edge.png,-90,58,156,77,172,110,157
+Patient_424,Left Oblique (45Â°)_edge.png,-45,121,175,122,175,129,176
+Patient_424,Right Lateral (90Â°)_edge.png,90,193,121,163,123,162,122
+Patient_424,Right Oblique (45Â°)_edge.png,45,102,161,168,137,190,171
+Patient_425,Anterior (Front)_edge.png,0,86,214,132,176,176,211
+Patient_425,Left Lateral (90Â°)_edge.png,-90,58,201,71,220,107,202
+Patient_425,Left Oblique (45Â°)_edge.png,-45,125,216,126,216,128,216
+Patient_425,Right Lateral (90Â°)_edge.png,90,176,186,145,207,117,188
+Patient_425,Right Oblique (45Â°)_edge.png,45,127,206,128,207,136,209
+Patient_50,Anterior (Front)_edge.png,0,61,236,121,181,173,241
+Patient_50,Left Lateral (90Â°)_edge.png,-90,61,189,78,210,114,190
+Patient_50,Left Oblique (45Â°)_edge.png,-45,127,236,128,236,141,241
+Patient_50,Right Lateral (90Â°)_edge.png,90,183,212,160,241,129,215
+Patient_50,Right Oblique (45Â°)_edge.png,45,122,230,125,229,128,229
+Patient_51,Anterior (Front)_edge.png,0,47,216,126,136,196,213
+Patient_51,Left Lateral (90Â°)_edge.png,-90,54,180,84,213,137,181
+Patient_51,Right Lateral (90Â°)_edge.png,90,200,182,165,211,124,183
+Patient_51,Right Oblique (45Â°)_edge.png,45,113,223,114,223,128,223
+Patient_59,Anterior (Front)_edge.png,0,61,227,126,167,183,224
+Patient_59,Left Lateral (90Â°)_edge.png,-90,47,196,66,226,108,198
+Patient_59,Left Oblique (45Â°)_edge.png,-45,117,221,118,221,128,221
+Patient_59,Right Lateral (90Â°)_edge.png,90,207,203,181,229,151,204
+Patient_59,Right Oblique (45Â°)_edge.png,45,125,225,126,225,136,229
+Patient_61,Anterior (Front)_edge.png,0,67,204,134,161,194,202
+Patient_61,Left Lateral (90Â°)_edge.png,-90,64,184,110,209,152,200
+Patient_61,Left Oblique (45Â°)_edge.png,-45,122,207,123,207,137,208
+Patient_61,Right Lateral (90Â°)_edge.png,90,194,182,150,209,103,189
+Patient_61,Right Oblique (45Â°)_edge.png,45,90,209,153,158,186,201
+Patient_64,Anterior (Front)_edge.png,0,48,210,129,142,193,211
+Patient_64,Left Lateral (90Â°)_edge.png,-90,64,192,89,224,136,196
+Patient_64,Left Oblique (45Â°)_edge.png,-45,125,221,126,221,128,221
+Patient_64,Right Lateral (90Â°)_edge.png,90,184,183,145,220,107,189
+Patient_64,Right Oblique (45Â°)_edge.png,45,98,217,124,215,128,214
+Patient_66,Anterior (Front)_edge.png,0,58,243,118,202,193,237
+Patient_66,Left Lateral (90Â°)_edge.png,-90,61,200,102,250,152,210
+Patient_66,Left Oblique (45Â°)_edge.png,-45,117,243,121,242,128,241
+Patient_66,Right Lateral (90Â°)_edge.png,90,223,210,187,252,143,212
+Patient_66,Right Oblique (45Â°)_edge.png,45,101,251,123,247,128,246
+Patient_67,Anterior (Front)_edge.png,0,57,171,125,129,177,175
+Patient_67,Left Lateral (90Â°)_edge.png,-90,77,150,94,177,128,151
+Patient_67,Left Oblique (45Â°)_edge.png,-45,125,182,126,182,130,183
+Patient_67,Right Lateral (90Â°)_edge.png,90,170,148,145,177,103,149
+Patient_67,Right Oblique (45Â°)_edge.png,45,121,176,169,134,208,179
+Patient_73,Anterior (Front)_edge.png,0,39,227,119,157,197,243
+Patient_73,Left Lateral (90Â°)_edge.png,-90,40,194,71,239,152,220
+Patient_73,Left Oblique (45Â°)_edge.png,-45,119,240,124,239,128,239
+Patient_73,Right Lateral (90Â°)_edge.png,90,208,195,166,226,103,206
+Patient_73,Right Oblique (45Â°)_edge.png,45,85,220,158,141,217,222
+Patient_92,Anterior (Front)_edge.png,0,39,225,131,131,157,146
+Patient_92,Left Lateral (90Â°)_edge.png,-90,20,209,93,212,98,210
+Patient_92,Left Oblique (45Â°)_edge.png,-45,39,222,91,137,128,151
+Patient_92,Right Lateral (90Â°)_edge.png,90,207,196,173,227,103,199
+Patient_92,Right Oblique (45Â°)_edge.png,45,105,243,125,241,128,240
+Patient_93,Anterior (Front)_edge.png,0,58,229,129,165,189,243
+Patient_93,Left Lateral (90Â°)_edge.png,-90,52,208,76,237,133,209
+Patient_93,Left Oblique (45Â°)_edge.png,-45,113,250,127,248,128,248
+Patient_93,Right Lateral (90Â°)_edge.png,90,189,194,149,224,103,195
+Patient_93,Right Oblique (45Â°)_edge.png,45,126,223,177,185,198,224
+Patient_95,Anterior (Front)_edge.png,0,62,205,126,157,181,215
+Patient_95,Left Lateral (90Â°)_edge.png,-90,33,181,59,219,98,186
+Patient_95,Left Oblique (45Â°)_edge.png,-45,126,210,127,210,129,211
+Patient_95,Right Lateral (90Â°)_edge.png,90,212,170,180,207,145,171
+Patient_95,Right Oblique (45Â°)_edge.png,45,125,204,126,204,130,205
+Patient_96,Anterior (Front)_edge.png,0,39,211,109,137,210,225
+Patient_96,Left Lateral (90Â°)_edge.png,-90,42,196,73,224,152,215
+Patient_96,Left Oblique (45Â°)_edge.png,-45,40,194,100,125,176,219
+Patient_96,Right Lateral (90Â°)_edge.png,90,189,190,103,218,103,218
+Patient_96,Right Oblique (45Â°)_edge.png,45,54,217,124,209,128,208
