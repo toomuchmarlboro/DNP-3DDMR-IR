@@ -5,6 +5,7 @@ data/raw/**/*.arrow
 .venv/
 
 # Large dataset and generated artifacts (keep externally, not in GitHub repo)
+data/*.csv
 data/raw/
 data/organized_by_patient_watershed/
 data/Automated_Edges/
