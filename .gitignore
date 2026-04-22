@@ -6,11 +6,8 @@ data/raw/**/*.arrow
 
 # Large dataset and generated artifacts (keep externally, not in GitHub repo)
 data/raw/
-data/organized_by_patient/
 data/organized_by_patient_watershed/
 data/Automated_Edges/
-data/Automated_Edges2/
-data/GroundTruth_Masks/
 data/local/
 data/reconstruction_output/
 
