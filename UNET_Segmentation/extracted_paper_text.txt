@@ -1,0 +1,731 @@
+--- PAGE 1 ---
+
+Check for
+ updates
+Modeling the 3D Breast Surface Using
+Thermography
+Gleidson M. Costa¹(), Eudoxia L. S. Moura2.3, Tiago B. Borchartt¹,
+and Aura Conci³
+1 Department of Informatics, Federal University of Maranhão, São Luís, Brazil
+ gleidsonmcosta@gmail.com, tiago.bonini@ufma.br
+2 Federal Institute of Education, Science and Technology of Rondônia, Porto Velho,
+Brazil
+eudoxia.moura@ifro.edu.br
+3 Institute of Computing, Federal Fluminense University, Niterói, Brazil
+ aconci@id.uff.br
+Abstract. Breast thermographies can show temperature distribution
+ and detect abnormalities in the body on examination.
+This work shows
+ an implementation allowing their used for three-dimensional (3d) models
+ of the breast surface from their acquisition in five different angles.
+Firstly,
+ breast segmentation is performed using U-Nets trained for each angle.
+ Then, the segmented edges are transformed into parametric curves.
+Geo-
+ metric transformation converts these curves from two-dimensional (2d)
+ to a three-dimensional after proper rotations and translation of them.
+These 3D curves are described by B-splines curves and used to build a
+ Rational Non-Uniform B-splines Surface (NURBS) for the breast region.
+Texture mapping is applied to project the frontal thermal data onto the
+ 3d surface.
+A Likert scale-based survey was conducted with healthcare
+ experts, and experienced academics to evaluate the final results and com-
+ pare them with examples of the same persons.
+The results received high
+ grades of approval and agreements.
+Keywords: Thermal imaging Breast cancer Three-dimensional
+ models
+1 Introduction
+Breast cancer is the most common type of cancer among women both in Brazil
+ and globally.
+As reported by the National Cancer Institute 73,610 new cases of
+ breast cancer were diagnosed in the country last year [1].
+Projections indicate
+ that by 2040, this number could increase to over 3 million of new cases [2].
+There are many exams to detect breast cancer, mammography is the most
+ popular.
+Despite, the accumulative effect of the ionizing radiation of this exam,
+ mammography is considered the gold standard [3].
+Thermography is a non-
+ invasive exam that analyses the heat emission from the body (breast region in
+ this case).
+It is affordable, fast, can be used in young and pregnant women, and
+The Author(s), under exclusive license to Springer Nature Switzerland AG 2023
+ S. T. Kakileti et al.
+(Eds.): AIIIMA 2023, LNCS 14298, pp. 45-56, 2023.
+ https://doi.org/10.1007/978-3-031-44511-8_3
+
+--- PAGE 2 ---
+
+46 G. M. Costa et al.
+presents great possibilities to assist in the detection of diseases [4,5].
+A abnor-
+ mal heat distribution on the images can be related to early cancer formation,
+ because it can increase the metabolism of the area [7].
+There are various types of treatments for breast cancer, which can be
+ employed individually or in combination, depending on the stage of the dis-
+ ease and the individual characteristics of each patient.
+Currently, mastectomy
+ and breast-conserving surgery are the most frequently performed surgical pro-
+ cedures [6].
+After surgery to treat breast cancer, breast reconstruction may be
+ an option for some patients.
+This reconstruction can be done through implants
+ (prosthetic reconstruction) or through the transfer of tissue from other parts of
+ the body (autologous reconstruction) [8].
+The use of three-dimensional models can bring significant benefits to the
+ breast reconstruction after cancer cure, promoting more satisfactory outcomes
+ for patients related to the shape similarity.
+The process of creating these 3D
+ models can be carried out through the utilization of a scanner, which captures
+ detailed information about the three-dimensional coordinates of the breast [9].
+However, it is important to mention some disadvantages associated with this
+ approach, such as the high costs involved and the lack of access to this technology
+ in hospitals and clinics, as well as the potential inaccuracy in cases of considerable
+ breast size.
+2 Materials and Methods
+This study uses thermal imaging from the database published on the Visual Lab
+ website [10, 11].
+The $640\times480$ images were obtained with a FLIR SC620 (sensi-
+ tivity of $0.04^{\circ}C$ and range from $-40^{\circ}C$ to $500^{\circ}C$).
+This database contains 222
+ exams, but there are exams unsuitable for the purpose of this work (e.g. those
+ with capture on incorrect angles, mastectomized patients and unclear breast
+ edges), they were removed.
+After this, 140 exams could be used, each one pre-
+ senting breast images acquired in 5 direction: frontal $(0^{\circ})$, oblique right lateral
+ $(45^{\circ})$ total right lateral $(90^{\circ})$, oblique left lateral $(-45^{\circ})$ and total left lateral
+ $(-90^{\circ})$.
+The temperature matrices from these exams are used. The developed
+ approach employs techniques from two areas of computer vision (CV): image
+ processing (IP) and computer graphics (CG).
+IP methods are used at the begin-
+ ning to obtain aspects of the geometry of the breasts from the exams, and in the
+ final step, to map textures corresponding to the temperatures.
+The intermediate
+ part of the process uses CG methods (or vector imaging) for construction and
+ positioning of curves, definition of transformation matrices and generation of 3-d
+ curves and the surface representing the breast under examination.
+2.1 Image Processing Phase
+The initial IP phase includes five steps as Fig. 1 shows: preprocessing, segmen-
+ tation, refinement, identification of the relevant edges and extraction key points
+ for each view.
+
+--- PAGE 3 ---
+
+Modeling the 3D Breast Surface Using Thermography 47
+Preprocessing
+Segmentation
+Refinement
+Edge
+ identification
+Key point
+ extraction
+Fig. 1. Flowchart of image processing steps.
+Preprocessing takes the original images $(640\times480)$ and resized it to $256\times256$
+ pixels.
+The frontal exam is converted from the original format to RGB (Red,
+ Green, Blue) using the FLIR (Forward Looking Infra-Red) rain palette.
+In this
+ way, the frontal information is used in the final step for rendering the 3d surface
+ by using texture mapping.
+Segmentation uses U-net model of Convolutional Neural Networks (CNN) to
+ performed the breast segmentation [12,13].
+In fact, 5 CNNs of this model are
+ trained (i.e. hyper parameters are generated for 5 U-nets) each to be used in one
+ of the 5 exam positions.
+From the database subset used, 109 (78%) exams were
+ used for training the nets and 31 (22%) were separated for testing.
+The training
+ used 100 epochs in batches of 2 with 50 epochs.
+Net weights are initialized with
+ normal distribution of random values.
+Each convolution uses the rectified linear
+ unit activator (ReLU) function to allow passing values that are greater than
+ 0. Adam optimizer with learning rate $1\times10^{-4}$ is used [14].
+This allows the
+ region of the breasts to be separated (i.e. segmented) from the rest of the image,
+ as shown in Fig. 2. It is noteworthy to emphasize that, given the preliminary
+ nature of this study, segmentation evaluations in comparison with a ground truth
+ standard were not conducted.
+The analysis of segmented images was subjectively
+ carried out for validation purposes.
+Those results without apparently satisfactory
+ segmentations were simply excluded of the process.
+M
+Fig. 2. Example of segmentation outputs with the 5 U-nets.
+
+--- PAGE 4 ---
+
+48 G. M. Costa et al.
+Refinement was next performed since the U-net segmentation can present more
+ areas then the regions shown in Fig. 2. Such areas must be removed, in order to
+ have only one main region connected per direction.
+This is done considering the
+ deletion of smaller areas from the output of the previous step.
+Figure 3 (a) shows
+ an example of a U-net result that leaves smaller areas, they are indicated by the
+ red arrows.
+For this, a threshold is performed using Suzuki (Fig. 3 (b)) [16],
+ and then only the area with bigger number of pixels is kept in each direction.
+Finally the Canny's edge detection method (Fig. 3 (c)) is applied resulting only
+ the largest connected edges [15].
+This kind of refinement is repeated for each of
+ the 5 views leaving only the largest edge in each one.
+(a)
+(b)
+(c)
+Fig. 3. Refinement of the obtained segmentation in case of more than one area exists
+ as a result of neural network segmentation.
+Identification of the relevant edge and points of each view are important
+ because they help in identifying the shape of the breasts, both in width (front)
+ and in thickness and height (sides).
+They will be used later to generate the 3D
+ surface.
+The inframammary curves are of main interest, these will be used to
+ adjust all other curves from the relevant edges of each view of the exam in a
+ single 3D coordinate system.
+To obtain these elements, the identification of the
+ relevant edges uses 4 steps.
+(1) Initially, the points in the lower region of each
+ edge are found, looking for the first points from bottom to top in each result of
+ the previous step.
+That is, for each of the final pixels of the horizontal direction,
+ the first pixel of the edge is searched from bottom to top.
+This will be stored and
+ the subsequent ones ignored. Thus, at the end of this step, only the pixels closest
+ to the bottom of each of the 5 edges from the previous step will be available,
+ as shown in Fig. 4(a).
+(2) Then, a search is made for the first pixels vertically,
+ starting from the right side of each image.
+Unlike the bottom-up search, the
+ lateral search consists of a lateral scan of each of the final edge pixels starting
+ at the right end (to find the closest pixels on this side).
+Output of this step is
+ shown in Fig. 4(b). (3) Same idea is applied to define the edge on the left (to find
+ the closest pixels on this side), this result is shown in Fig. 4(c).
+(4) Finally, all
+ pixels from step (1) that are found in any of the other 3 detections (steps 2 and
+
+--- PAGE 5 ---
+
+Modeling the 3D Breast Surface Using Thermography
+49
+3) are removed. That is, it is deleted from the result of (1) all points also present
+ in the relevant edges on the right and left sides.
+In this way, the resulting points
+ at the end of step (4) are just the points that are shown in Fig. 4(d).
+(a) All points nearest to the bottom region of the image
+(b) All points nearest to the right side of the image
+(c) All points nearest to the left side of the image
+(d) Bottom single points of the five views
+Fig. 4. Identification of unique relevant edges of each view.
+Extraction of each view key points for each examination angle (or for each
+ view) must be done, this consists of the identification of three points: P1, P2
+ and P3 (Fig. 5 show these points).
+They belong to the lower single edge of the 5
+ views, that is, from step (4) of the previous subsection.
+In the $0^{\circ}$, $45^{\circ}$ and $-45^{\circ}$
+ images, a point is found at the junction of the curves (in the center of the body:
+ P2) and 2 points corresponding to the inflections of the breast curves on the
+ right (P1) and left (P3) first points.
+For images of $90^{\circ}$ and $-90^{\circ}$, the beginning
+ and end of the curve are identified, they are presented on Fig. 5(d) (P1 and P3)
+ and the third point is the lowest point of this curve (P2).
+Figure 5 shows these
+ points in the images resulting from segmentation in order to better identify their
+ meanings.
+
+--- PAGE 6 ---
+
+50
+G. M. Costa et al.
+0
+45°
+90°
+-45"
+-90°
+P2
+Fig. 5. Identification of the key points of each direction.
+2.2 Using Computer Graphics (CG) Techniques
+This phase uses CG resources (as shown in Fig. 6) to: (1) transform and place
+ the 2d edges in space, turning them in 9 body curves, (2) adjust the curves by
+ B-splines interpolating them, (3) generate boundary surfaces of the breasts, and
+ (4) render this surface using the frontal thermography of the patient as textures.
+Geometric
+ transformation
+Adjust the 9
+ B-splines
+Generate NURBS
+ surface
+Texturing
+Fig. 6. Flowchart of the steps of the method using CG methods.
+To describe the 3D shape of the breast, 9 curves are used (see Fig. 7. From a
+ $0^{\circ}$ image, three curves are generated following different criteria: the first curve
+ is defined by all points to the right of P1; the second by all points to the left of
+ P3; and the third is an auxiliary curve that extends from P2 to the top of the
+ image (Fig. 5). Then, four curves represent the complete edges of images rotated
+ at $45^{\circ}$, $-90^{\circ}$, $-45^{\circ}$, and $90^{\circ}$, respectively. Additionally, two auxiliary curves are
+ created by replicating the edges of $45^{\circ}$ and $-45^{\circ}$, which 
+will later be rotated
+ at angles of $135^{\circ}$ and $-135^{\circ}$, respectively (forming the central valley between
+ beasts).
+Geometric transformations of the key points needs to use a 3D coordinate
+ system (Fig. 7).
+The X and Y axis of this coordinate is the same horizontal and
+ vertical directions of the 2d images, respectively, while the Z axis is defined by
+ the vector product of the X by Y. The edge of the $0^{\circ}$ image is not rotated.
+This edge will serve as the base of the 3d model in the z-plane.
+The edges
+ from the $45^{\circ}$ and $-90^{\circ}$ breast views will have their contours rotated by $45^{\circ}$
+ and $-90^{\circ}$, respectively, and positioned over point P3 obtained in the $0^{\circ}$ view.
+The edges from the $-45^{\circ}$ and $90^{\circ}$ breast views will have their edges rotated
+ by $-45^{\circ}$ and $90^{\circ}$, respectively, and positioned over point P1 obtained in the $0^{\circ}$
+ view.
+The two auxiliary contours created from copying the $45^{\circ}$ and $-45^{\circ}$ edges
+ will be rotated by $135^{\circ}$ and $-135^{\circ}$.
+The processes of translation and rotation
+ are performed through transformation matrices, and all the points of the curves
+
+--- PAGE 7 ---
+
+Modeling the 3D Breast Surface Using Thermography
+51
+that pass through these axes are transformed by the corresponding angles.
+The
+ exclusion of points behind the frontal plane results in the correct final edges.
+The
+ curves shown in Fig. 7(a) illustrate how the various edge points are positioned in
+ a single view of the breast examination edges.
+At the end of this process, there
+ are 3D coordinates for all the edge points of the breast in vector form within a
+ single coordinate system.
+Adjust of the curves by B-splines from the 9 curves of the previous step.
+These 3d curves are initially described by all their points (raster format), but in
+ this stage, they will be transformed to vector form, i.e., through mathematical
+ expressions.
+CG parametric descriptions of B-Splines curves are used for this
+ purpose.
+Since the number of points in each of these curves is different, a point
+ adjustment by B-spline is used to normalize the number of control points for each
+ curve.
+The B-spline function implemented in [17] is employed for this purpose.
+The created curves are of degree 4, and results of definition of the control points
+ that defines the curves obtained in the previous step.
+Generation of the NURBS Surface from the 9 B-Splines curves shown in
+ Fig. 7 (a) in blue.
+The green dots (in Fig. 7 (b)) represent the vertices of the
+ triangles that generated the mesh, obtained after applying a generator of the
+ surface by NURBS [17].
+In Fig. 7 (c), the vertices are displayed on a mesh with
+ volume-based coloring, where the bluer the color, the larger the volume, and the
+ redder the color, the smaller the volume, considering a background plane.
+(a)
+(b)
+(c)
+Fig. 7. (a) Points of the 9 curves generated by B-spline for each of the obtained curves
+ seen from two different viewpoints.
+(b) Vertices obtained after applying NURBS (seen
+ from two different viewpoints). (c) Mesh with volume-based coloring.
+
+--- PAGE 8 ---
+
+52
+G. M. Costa et al.
+2.3 Generation of the Three-Dimensional Thermography
+The texture used to render the generated 3-d mesh is produced in the first step
+ (Preprocessing) with false color technique (rain palette of FLIR).
+Figure 8 shows
+ the texture of the frontal thermographic exam being associated with 2 vertices of
+ the model in a UV texture map.
+This mapping is repeated for all other vertices
+ and then used to render the region by using OpenGL library [18].
+0,1
+YA
+ 4
+50
+100
+130
+t
+1,1
+0,0
+1,0
+S
+Fig. 8. Final polygonal mesh used for temperature (texture mapping) representation
+ producing a 3d thermogram.
+3 Algorithm
+All the steps comment in previous section form the complete system that has
+ been implemented using the Python programming language, employing the com-
+ puter vision library OpenCV for image processing tasks, and using OpenGL for
+ the CG (transformation, curves, surface and rendering) purposes.
+Algorithm 1
+ presents a succinct pseudo code representation of the image processing and com-
+ puter graphics procedure implemented.
+
+--- PAGE 9 ---
+
+Modeling the 3D Breast Surface Using Thermography 53
+
+The following table:
+"Algorithm 1. 3D Surface from 5 Segmentations
+"
+"1: Start
+"
+"2: Define X, Y, Z coordinates (X horizontal, Y vertically, $Z=X\times Y)$
+ 3: Load segmentations of $0^{\circ}$, $45^{\circ}$, $-45^{\circ}$, $90^{\circ}$, and $-90^{\circ}$ exams
+ Load original $0^{\circ}$ exam
+"
+"4:
+"
+"5:
+
+
+for each segmentation do
+ Apply threshold T to binarize it
+
+
+6:
+"
+"Perform segmentation refinement using morphological operations
+ Find and store edges of $0^{\circ}$, $45^{\circ}$, $-45^{\circ}$, $90^{\circ}$, and $-90^{\circ}$ segmentations
+ Find the inframammary curve of each segmentation and name
+ it
+ 2d_list_of_relevant_edges
+
+
+7:
+
+
+8:
+
+
+9:
+"
+"10:
+
+
+for $0^{\circ}$, $45^{\circ}$, and $-45^{\circ}$ 2d_list_of_relevant_edges do
+"
+"Find the highest point (x, y) and name it P2
+
+
+11:
+"
+"Find the lowest point
+
+
+12:
+"
+"if lowest point is the right side of the curve then
+
+
+13:
+"
+"14:
+
+
+name it P1
+"
+"if lowest point is the left side of the curve then
+
+
+15:
+"
+"name it P3
+
+
+16:
+"
+"17:
+
+
+for $90^{\circ}$ and $-90^{\circ}$ 2d_list_of_relevant_edges do
+ Find the lowest point and name it P2
+
+
+18:
+"
+"Find the edges end point in direction of the body center and name it P1
+
+
+19:
+"
+"Find the edges end point in direction of the arms and name it P3
+
+
+20:
+"
+"21:
+
+
+for each 2d_list_of_relevant_edges (define the 3d curved) do do
+ Translate each P2 to (0,0,0)
+
+
+22:
+"
+"Rotate the relevant edges angle
+ if relevant edges is 45 or -90 then
+ Translate it to P3 of $0^{\circ}$ relevant edges
+
+
+23:
+
+
+24:
+
+
+25:
+"
+"if relevant edges is-45 or 90 then
+ Translate it to P1 of $0^{\circ}$ relevant edges
+
+
+26:
+
+
+27:
+"
+"Create auxiliary $45^{\circ}$ edge
+ Rotate $45^{\circ}$ relevant edges of $135^{\circ}$
+ Translate it to P3 of $0^{\circ}$ relevant edges
+ Create auxiliary $-45^{\circ}$ edge
+
+
+28:
+
+
+29:
+
+
+30:
+
+
+31:
+
+
+32:
+
+
+
+
+Rotate $-45^{\circ}$ relevant edges of $-135^{\circ}$
+ Translate it to P1 of $0^{\circ}$ relevant edges
+
+
+33:
+"
+
+"34:
+
+
+Define body edges
+"
+"35:
+
+
+Select point of $0^{\circ}$ segmentation at
+ $Z=0$
+
+
+left of P1 and name it Left body edge with
+"
+"36:
+
+
+Select point of $0^{\circ}$ segmentation at right of P3 and name it Right body edge with
+ $Z=0$
+"
+"Create a line from $(P2_{x},P2_{y},0)$ of $0^{\circ}$ segmentation to $(P2_{x},0,0)$ and name it
+ middle line
+
+
+37:
+"
+"38:
+
+
+Remove all points with positive Z coordinates
+"
+"39:
+
+
+Represent each 3D curve as a B-Spline
+"
+"40:
+
+
+Use control points of the 9 Splines to create a NURBS
+"
+"41:
+
+
+Store these 3D control points
+"
+"42:
+
+
+Include texture on the NURBS using as UV map the original $0^{\circ}$ exam
+"
+"43:
+
+
+Show the result
+"
+"44:
+
+
+End
+"
+
+--- PAGE 10 ---
+
+54
+G. M. Costa et al.
+4 Results
+This article presents an system to model the body from 5 thermograms and
+ also a way to produce a 3D visualization for thermographic examinations.
+The
+ methodology created in original and uses a combination of IP and CG techniques.
+The first part of this methodology extracts the shape of the breasts based on
+ their edges and then the second part transform these edges in a 3d curves that
+ generates a spatial model using NURBS.
+The algorithm used in the system after
+ the segmentation is present, as well.
+140 exams was used generating the same
+ numbers of 3D models and exams.
+The generated models can be viewed at [19].
+ Figure 9 shows the result for the volunteer with ID 143 of the data set bellow
+ the original acquisitions for visual comparison.
+Fig. 9. Thermographic images of volunteer ID 143 and she 3D reconstruction by this
+ technique.
+The 3D resultant models were visually evaluated by comparing the exams
+ and the results in a survey using a five-point Likert scale.
+Fifteen experts in the
+ fields of healthcare, computer graphics, 3D modeling, and image processing, all
+ with experience in medical image analysis, were consulted regarding 10 of the
+ created 3D models.
+The results achieved an approval rate of over 70%, which is
+ considered a very good outcome [20].
+In the complete implementation, 5 U-nets Convolutional Neural Networks
+ (CNNs) were employed for the segmentation of breast regions.
+As a future
+ work, considering that the right and left lateral images are mirrored images,
+ the segmentation process can be optimized by vertically flipping the images,
+ thus training a single network to handle both lateral and oblique views.
+This
+ approach reduces the complexity of the model and simplifies the breast segmen-
+ tation process.
+Another enhancement would be the use of only one network to
+
+--- PAGE 11 ---
+
+Modeling the 3D Breast Surface Using Thermography
+55
+segment the breast in all views, improving the algorithm's efficiency and yield-
+ ing accurate results [21,22].
+In future works, we are considering also to compare
+ the generated models with real 3-d models acquired through a 3D scanner and
+ reconstructed using other methods to verify better the accuracy of the presented
+ method through numerical quantifiers such as average distances or coincidence
+ of breast relevant points.
+In other words, a comparative study of the models
+ constructed using this methodology with real 3-d models will be conducted on
+ the same day of the thermogram acquisition.
+Thus, the patient's breasts will be
+ captured in 3D to enable a numerical comparison between the generated models
+ and the real body.
+This will help validate the methodology, assess its accuracy,
+ and evaluate its clinical utility.
+Acknowledgments. E.L.S.M. is supported by Federal Institute of Education, Sci-
+ ence and Technology of Rondônia (IFRO).
+A.C. is supported in part by CYTED, the
+ National Institutes of Science and Technology (INCT - MACC project), National Coun-
+ cil for Scientific and Technological (CNPq) under grant 307638/2022-79, the Research
+ Support Foundation of Rio de Janeiro State (FAPERJ) over CNE, SIADE-2, e-Health
+ Rio and Digit3D ("tematico") projects [23].
+References
+1. Instituto Nacional de Câncer
+ INCA.: Cancer Statistics (in Portuguese:
+ Estatísticas de câncer). Recuperado de (2023). https://www.gov.br/inca/pt-br/
+ assuntos/cancer/numeros
+2. Arnold, M., et al.: Current and future burden of breast cancer: global statistics for
+ 2020 and 2040. Breast (2022).
+https://doi.org/10.1016/j.breast.2022.08.010
+ 3. Koay, J., Herry, C., Frize, M.: Analysis of breast thermography with an artificial
+ neural network.
+In: The 26th Annual International Conference of the IEEE Engi-
+ neering in Medicine and Biology Society, vol.
+1, pp. 1159-1162 (2004). https://doi.
+ org/10.1109/IEMBS.2004.1403371
+4. Lanisa, N., Cheok, N.S., Wee, L.K.: Color morphology and segmentation of the
+ breast thermography image.
+In: 2014 IEEE Conference on Biomedical Engineering
+ and Sciences (IECBES), pp. 772-775 (2014)
+5. Jockers, D.: Thermography: the new gold standard in breast cancer screening
+ (2019)
+6. Araujo, A.D., Resmini, R., Moran, M.B., Issa, M.H., Conci, A.: Computer tech-
+ niques for detection of breast cancer and follow up neoadjuvant treatment: using
+ infrared examinations.
+In: Pinheiro dos Santos, W., Azevedo da Silva, W., de San-
+ tana, M. (eds.) Biomedical Computing for Breast Cancer Detection and Diagnosis,
+ pp. 72-106.
+IGI Global (2021). https://doi.org/10.4018/978-1-7998-3456-4.ch005
+ 7. Borchartt, T.B., Conci, A., Lima, R.C.F., Resmini, R., Sanchez, A.: Breast ther-
+ mography from an image processing viewpoint: a survey.
+Sig. Process. 93(10),
+ 2785-2803 (2013). https://doi.org/10.1016/j.sigpro.2012.08.012. ISSN 0165-1684
+ 8. Yun, J.H., Diaz, R., Orman, G.: Breast reconstruction and radiation therapy.
+Can-
+ cer Control (2018). https://doi.org/10.1177/107327481879548
+9. Mayer, H.F.: The use of 3D simulator software and 3D printed biomodels to aid in
+ autologous breast reconstruction.
+Aesthetic Plast. Surg. 44(5), 1396-1402 (2020).
+ https://doi.org/10.1007/s00266-020-01733-y
+
+--- PAGE 12 ---
+
+56
+G. M. Costa et al.
+10. Visual Lab website. https://visual.ic.uff.br/dmi/
+11. Silva, L.F., et al.: A new database for breast research with infrared image. J. Med.
+Imaging Health Inf. 4(1), 92-100 (2014)
+12. Dalmia, A., Kakileti, S., Manjunath, G.: Exploring deep learning networks for
+ Tumour segmentation in infrared images.
+In: 14th International Conference on
+ Quantitative Infrared Thermography (2018)
+13. Ronneberger, O., Fischer, P., Brox, T.: U-Net: convolutional networks for biomed-
+ ical image segmentation.
+In: Navab, N., Hornegger, J., Wells, W.M., Frangi, A.F.
+ (eds.) MICCAI 2015. LNCS, vol. 9351, pp. 234-241. Springer, Cham (2015).
+https://doi.org/10.1007/978-3-319-24574-4-28
+14. GitHub zhixuhao/unet. https://github.com/zhixuhao/unet
+15. Green, B.: Canny edge detection tutorial (2002). https://masters.donntu.ru/2010/
+fknt/chudovskaja/library/article5.htm
+16. Suzuki, S., et al.: Topological structural analysis of digitized binary images by
+ border following. Comput. Vis. Graph. Image Process.
+30(1), 32-46 (1985)
+ 17. Bingol, O.R., Krishnamurthy, A.: NURBS-Python: an open-source object-oriented
+ NURBS modeling framework in Python.
+SoftwareX 9, 85-94 (2019). https://doi.
+ org/10.1016/j.softx.2018.12.005
+18. OpenGL. API Documentation (2019). https://www.opengl.org/documentation/
+ 19. Website: 3D surface modeling of the breast using thermography. https://sites.
+google.com/view/three-dimensional-breast-model
+20. Costa, G.M.: Automated construction of three-dimensional models of the breast
+ region from thermal images (in Portuguese: Construção automatizada de modelos
+ tridimensionais da região das mamas a partir de imagens térmicas).
+M.Sc. disser-
+ tation (2020)
+21. Baffa, M.F.O., Conci, A.: Radiomics for breast IR-imaging classification. In: Kak-
+ ileti, S.T., et al.
+(eds.) Artificial Intelligence over Infrared Images for Medical Appli-
+ cations and Medical Image Assisted Biomarker Discovery, pp. 10-19.
+Springer,
+ Cham (2022). https://doi.org/10.1007/978-3-031-19660-7-2
+22. Kakileti, S.T., Manjunath, G., Madhu, H.J.: Cascaded CNN for view independent
+ breast segmentation in thermal images.
+In: 41st Annual International Conference
+ of the IEEE Engineering in Medicine and Biology Society (EMBC), pp. 6294-6297
+ (2019). https://doi.org/10.1109/EMBC.2019.8856628
+23. Digit3D projects. https://sites.google.com/view/three-dimensional-breast-model
