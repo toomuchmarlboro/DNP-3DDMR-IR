@@ -1,94 +1,302 @@
-# 3D Breast Surface Reconstruction from Thermographic Images
+# 3D Breast Thermography Reconstruction
 
-This repository contains the implementation of the 3D breast surface reconstruction pipeline based on the methodology proposed in **Costa et al. (2023): "Modeling the 3D Breast Surface Using Thermography"**. 
+This repository documents a multi-stage research pipeline for reconstructing breast shape information from multi-view thermographic images. The project has evolved through several phases: background removal, U-Net segmentation, 2.5D geometric reconstruction, exploratory representation learning, and the current BreastNet3D notebook that learns a 3D occupancy volume from five aligned views.
 
-The goal of this project is to take 2D thermographic images from 5 different views (0°, +45°, -45°, +90°, -90°) and reconstruct a 3D Non-Uniform Rational B-Spline (NURBS) surface representing the patient's breast anatomy.
+This README is written as a handoff document for future contributors, especially Zifa and Jessie. It explains what each stage does, why it exists, and how the pieces connect.
 
----
+The project is guided by the canonical five-view acquisition protocol:
 
-## Pipeline Overview and Mathematical Formulation
+* Frontal: 0°
+* Right oblique: +45°
+* Left oblique: -45°
+* Right lateral: +90°
+* Left lateral: -90°
 
-The notebook `KPE_Current.ipynb` implements the complete pipeline in 8 phases. Below is a detailed mathematical and programmatic explanation of what happens in each phase.
-
-### Phase 1 & 2: U-Net Segmentation & Refinement
-*   **Input**: Raw 2D thermographic images.
-*   **Process**: A Convolutional Neural Network (U-Net architecture) is used to segment the breast area from the background. The output is a binary mask. Morphological operations (dilation/erosion) are applied to clean noise and extract the continuous edge of the segmentation.
-
-### Phase 3: Inframammary Fold Extraction
-*   **Goal**: Isolate the lower boundary of the breast (the inframammary fold).
-*   **Process**: 
-    1. For every x-coordinate, find the lowest (max $y$) edge pixel.
-    2. Subtract the purely vertical lateral boundaries (the extreme left and right vertical edges of the segmented mask).
-    3. The remaining pixels form the "lower single edge."
-    4. **Ordering**: An 8-connected neighbor traversal algorithm connects the raw pixels into an ordered, contiguous 2D curve $(x_i, y_i)$. This prevents the contour from being treated as random scatter in later interpolation steps.
-
-### Phase 4: Anatomical Key Point Extraction (P1, P2, P3)
-Key points are extracted based on Algorithm 1 (lines 10-20) of the paper to serve as pivot points for 3D alignment.
-
-**For 0° (Frontal), 45° (Right Oblique), and -45° (Left Oblique) views:**
-*   **P2 (Center Junction)**: The highest point of the curve mathematically defined as $P2 = \arg\min_{(x,y)} (y)$.
-*   **P1 (Right Side)**: The patient's right-side inflection point, which corresponds to the maximum x-coordinate on the image: $P1 = \arg\max_{(x,y)} (x)$.
-*   **P3 (Left Side)**: The patient's left-side inflection point, which corresponds to the minimum x-coordinate on the image: $P3 = \arg\min_{(x,y)} (x)$.
-
-**For 90° (Right Lateral) and -90° (Left Lateral) views:**
-*   **P2 (Lowest Point)**: $P2 = \arg\max_{(x,y)} (y)$.
-*   **P1 (Toward Body Center) & P3 (Toward Arms)**:
-    *   For 90°: Body center is on the left ($P1 = \arg\min x$), arms on the right ($P3 = \arg\max x$).
-    *   For -90°: Body center is on the right ($P1 = \arg\max x$), arms on the left ($P3 = \arg\min x$).
-
-### Phase 5: 3D Geometric Transformation (Generating the 9 Curves)
-This phase projects the 2D edges into a unified 3D coordinate system (X=Horizontal, Y=Vertical Downward, Z=Depth, where $Z \le 0$ extends towards the camera).
-
-#### 1. Frontal Curves (C1, C2, C3)
-The 0° frontal view sits at $Z=0$.
-*   **C1**: The segment of the ordered 0° contour extending to the right of $P1$ ($x \ge P1_x$).
-*   **C2**: The segment of the ordered 0° contour extending to the left of $P3$ ($x \le P3_x$).
-*   **C3**: An auxiliary vertical line constructed from $P2$ straight up to the top of the image boundary: $x = P2_x, y \in [y_{top}, P2_y]$.
-
-#### 2. Rotated Side-View Curves (C4 - C9)
-For the remaining views (+45°, -90° anchored to $P3_{global}$; -45°, +90° anchored to $P1_{global}$), a rigid geometric transformation is applied. 
-
-For each point $(x_c, y_c)$ in a lateral/oblique contour:
-1.  **Translate local $P2$ to origin**: 
-    $$x' = x_c - P2_x, \quad y' = y_c - P2_y$$
-2.  **Rotate around Y-axis by $\theta$** (where $\theta$ is the view angle):
-    The rotation matrix $R_y(\theta)$ is applied:
-    $$x_{rot} = x' \cos(\theta)$$
-    $$y_{rot} = y'$$
-    $$z_{rot} = -x' \sin(\theta)$$
-3.  **Translate to Global Pivot**:
-    Move the rotated curve to the corresponding anchor point ($P_{pivot} \in \{P1_{0°}, P3_{0°}\}$):
-    $$X_f = x_{rot} + P_{pivot, x}$$
-    $$Y_f = y_{rot} + P_{pivot, y}$$
-    $$Z_f = z_{rot}$$
-4.  **Z-Filtering & Contiguous Extraction**: 
-    To remove overlapping back-facing segments (the body of the patient), points where $Z_f > 0$ are discarded. To prevent closed loops caused by internal contour gaps, the algorithm extracts the longest contiguous segment of $Z \le 0$ points, yielding an open 3D breast profile.
-
-### Phase 6: B-Spline Curve Fitting
-To normalize the point clouds and ensure smoothness, a **Degree-4 B-spline** is fitted to each of the 9 generated curves (C1-C9). 
-*   `scipy.interpolate.splprep` computes a parametric representation of the curve.
-*   The curve is then resampled using exactly 100 uniformly spaced parameters $u \in [0, 1]$ via `splev`. This ensures all 9 curves have the exact same dimensionality and smooth out pixelation noise.
-
-### Phase 7 & Phase 8: 3D Visualization and NURBS Lofting
-*   **Visualization**: `plotly.graph_objects` is used to plot the 9 3D curves interactively.
-*   **NURBS Surface Generation**: To create a solid 3D mesh (surface) from the 9 skeleton curves, `scipy.interpolate.griddata` is used. It takes the $(X, Y)$ coordinates of the B-spline control points as inputs and interpolates a dense grid of $Z$ (depth) values, effectively lofting a continuous surface over the skeleton curves.
+The sign convention above is the one used throughout the repository and matches the paper-aligned registration notes in the reconstruction code.
 
 ---
 
-## What to Do Next for the Thesis
+## Project Summary
 
-The geometric reconstruction pipeline is now mathematically sound and correctly implements Algorithm 1 from the paper. To finalize the system, you should complete the following steps:
+The repository contains two broad families of work.
 
-1. **UV Texture Mapping (Algorithm 1, Line 42)**
-   * Currently, the surface is a solid color mesh. You need to map the original 0° (frontal) raw thermographic image onto this 3D NURBS surface. 
-   * **How to do it**: Since the $X, Y$ coordinates of the 3D surface grid perfectly align with the pixel coordinates of the frontal 0° image, you can sample pixel colors from the original 0° thermogram using the $(X, Y)$ coordinates of the surface grid and apply them as textures in the 3D plot.
+The first family is the earlier geometric pipeline captured in [KPE_Current.ipynb](UNET_Segmentation/KPE_Current.ipynb). That notebook focuses on contour extraction, keypoint detection, rigid registration, and lofting a 3D breast surface from ordered 2D curves. It follows the methodology inspired by Costa et al. and implements the project’s 2.5D geometric interpretation of the thermographic views.
 
-2. **Refine Surface Lofting Boundaries**
-   * The current `griddata` interpolation uses a rectangular convex hull, which sometimes causes artifacting at the extreme edges. You can apply a masking function or transition to a specialized CAD/NURBS library (like `geomdl`) to create a true lofted Non-Uniform Rational B-Spline surface bounded strictly by C1 and C2.
+The second family is the newer learned reconstruction path, centered on [breastnet3d.ipynb](UNET_Segmentation/3DBreastnet/breastnet3d.ipynb) and the fixed companion notebook [breastnet3d_fixed.ipynb](UNET_Segmentation/3DBreastnet/breastnet3d_fixed.ipynb). This version uses five-view binary masks as input to an encoder-decoder model, predicts a 3D occupancy volume, and then renders differentiable projections back into the five canonical views for self-supervised training.
 
-3. **Quantitative Validation**
-   * As suggested in the "Future Work" section of Costa et al., visually inspecting the 3D shape isn't enough for clinical validation. 
-   * **Action**: Compare the reconstructed point cloud against ground-truth data (e.g., from a 3D structured light scanner) using metrics like Root Mean Square Error (RMSE) or Hausdorff Distance.
+In practical terms, the repository now covers three levels of work:
 
-4. **Batch Processing Automation**
-   * Convert the pipeline inside the notebook into a Python class/script so it can iterate over the entire dataset (e.g., "Patient_13", "Patient_14", benign vs. malignant) and automatically save the 3D models (as `.obj` or `.stl` files) for all patients without manual intervention.
+* preprocessing and masking
+* classical geometric reconstruction
+* learned 3D reconstruction and export
+
+---
+
+## Repository Evolution
+
+### 1. Preprocessing and mask generation
+
+The script [watershed_background_removal.py](watershed_background_removal.py) removes the background from organized thermograms using watershed segmentation. It produces binary masks and, optionally, radiometric masked arrays that preserve the original thermal values while setting the background to zero.
+
+This step matters because all later stages assume that the breast region has already been isolated from the room background and imaging artifacts.
+
+### 2. Exploratory representation learning
+
+The file [CNNVAE_test.py](CNNVAE_test.py) is an exploratory experiment rather than a final production component. It implements a convolutional variational autoencoder for thermal images and includes feature-space analysis tools such as latent sampling and t-SNE visualization.
+
+Its role in the repository is historical and methodological. It demonstrates that the project first explored whether thermal images could support latent representation learning before moving into shape reconstruction.
+
+### 3. Classical 2.5D geometric reconstruction
+
+The notebook [KPE_Current.ipynb](UNET_Segmentation/KPE_Current.ipynb) is the main record of the earlier geometric pipeline. It extracts anatomical curves and anchor points from five-view masks, aligns them in a consistent coordinate system, and reconstructs a breast surface from the ordered geometry.
+
+This notebook is important because it defines the project’s anatomical logic: how the five views are interpreted, how the contour points are ordered, and how the pivot points are mapped across views.
+
+### 4. Learned 3D reconstruction
+
+The current BreastNet3D notebooks extend the project into a learned reconstruction formulation. Instead of lofting a surface directly from curve geometry, the model learns a latent representation from the 5-view masks and decodes it into a 3D occupancy volume.
+
+This is the current working direction of the project in the repository.
+
+---
+
+## Previous Work: KPE_Current.ipynb
+
+The earlier notebook [KPE_Current.ipynb](UNET_Segmentation/KPE_Current.ipynb) is best understood as a structured geometric pipeline. It contains the following phases.
+
+### Phase 1 and Phase 2: segmentation and refinement
+
+The raw thermal input is segmented with a U-Net. The output is a binary silhouette of the breast region. Morphological cleanup is used to reduce noise and stabilize the contour.
+
+If the input intensity image is denoted by $I(x,y)$ and the normalized output by $I_{norm}(x,y)$, the project uses the usual min-max scaling:
+
+$$
+I_{norm}(x,y) = \frac{I(x,y) - I_{min}}{I_{max} - I_{min} + \epsilon}
+$$
+
+### Phase 3: inframammary fold extraction
+
+The goal is to isolate the lower boundary of the breast contour. The code traces the lower edge, removes the lateral vertical segments, and then orders the remaining points into a continuous polyline. That ordering step is important because later interpolation assumes an actual curve, not an unordered point cloud.
+
+### Phase 4: anatomical keypoint extraction
+
+The notebook extracts the anchor points $P1$, $P2$, and $P3$ used to register the contours across views.
+
+For frontal and oblique views, the interpretation is:
+
+$$
+P2 = \arg\min_{(x,y)} y, \quad P1 = \arg\max_{(x,y)} x, \quad P3 = \arg\min_{(x,y)} x
+$$
+
+For lateral views, the convention changes because the image is effectively rotated relative to the body axis. The notebook keeps the paper-aligned interpretation of the sign convention and view-specific anchor assignment.
+
+### Phase 5: 3D geometric transformation
+
+The ordered 2D curves are lifted into a common 3D coordinate system using a rigid rotation around the $Y$ axis.
+
+For a contour point $(x_c, y_c)$ and a local pivot $P2$, the transformed coordinates are:
+
+$$
+x' = x_c - P2_x, \quad y' = y_c - P2_y
+$$
+
+$$
+x_{rot} = x' \cos(\theta), \quad y_{rot} = y', \quad z_{rot} = -x' \sin(\theta)
+$$
+
+The sign convention used here is important. In the repository notes, right oblique is $+45^\circ$, left oblique is $-45^\circ$, right lateral is $+90^\circ$, and left lateral is $-90^\circ$.
+
+### Phase 6: B-spline fitting
+
+Each lifted curve is smoothed with a degree-4 B-spline. This makes the curve easier to compare, loft, and visualize.
+
+### Phase 7 and Phase 8: visualization and surface construction
+
+The notebook visualizes the result and then constructs a lofted surface from the curve family. In practical terms, this converts a set of anatomical boundary curves into a continuous surface estimate that can be inspected and exported.
+
+---
+
+## Current Work: BreastNet3D Notebook
+
+The current BreastNet3D notebook is the most important file for the next stage of the project. It is a self-supervised learned reconstruction pipeline that starts from five-view masks and predicts a 3D volume.
+
+### Core idea
+
+The model takes the 5-view binary masks, encodes them into a latent vector, decodes that latent vector into a 3D occupancy grid, and compares rendered projections against the observed masks. In other words, it learns a 3D shape that remains consistent with all five 2D silhouettes.
+
+The reconstruction objective is driven by a differentiable projection model:
+
+$$
+Projection(h,w) = 1 - \exp\left(-\sum_d V_{rot}(d,h,w)\right)
+$$
+
+where $V_{rot}$ is the rotated volume and the sum is taken over the depth dimension.
+
+### Model structure
+
+The current notebook uses the following components:
+
+* a frozen U-Net segmentation model to obtain masks when masks are missing on disk
+* a patient grouper that selects only complete 5-view patients
+* a 2D encoder that maps the 5-channel mask tensor to a 1000-dimensional latent vector
+* a 3D decoder that expands the latent code into a $128 \times 128 \times 128$ occupancy volume
+* a differentiable visual-hull style renderer for consistency training
+* inference routines that recover the best per-view angles and map temperature information onto the reconstructed volume
+
+### Self-supervised training objective
+
+The notebook uses Dice loss between the projected reconstruction and the input silhouette masks. The Dice loss is written as:
+
+$$
+\mathcal{L}_{Dice}(P,T) = 1 - \frac{2\sum (P \cdot T)}{\sum P^2 + \sum T^2 + \epsilon}
+$$
+
+This loss is a natural fit for binary silhouettes because it penalizes overlap errors directly and is less sensitive than pixelwise accuracy to foreground-background imbalance.
+
+### Validation metrics
+
+The notebook tracks:
+
+* training loss
+* validation loss
+* validation Dice score
+* validation HD95
+
+The 95th-percentile Hausdorff distance is used because it is more robust than the raw maximum distance and better reflects practical contour mismatch.
+
+### Why this matters
+
+This learned version of the pipeline is a conceptual shift from pure geometric reconstruction to reconstruction constrained by learning. It is especially useful when the contour extraction and curve matching logic become too brittle across patients, views, or image quality.
+
+---
+
+## Data Flow
+
+The current project pipeline can be summarized as follows.
+
+1. Input thermographic views are organized by patient and class.
+2. Background is removed or reduced with watershed preprocessing when needed.
+3. Binary masks are generated or recovered using the frozen U-Net.
+4. The masks are grouped into complete five-view patient sets.
+5. The 5-view masks are encoded into a latent vector.
+6. The latent vector is decoded into a 3D volume.
+7. The volume is rendered back into the five canonical views.
+8. The predicted projections are compared with the target masks.
+9. The final volume is exported along with asymmetry features and quality checks.
+
+The export stage writes patient-level outputs such as:
+
+* binary 3D volume
+* soft occupancy volume
+* thermal volume overlay
+* estimated view angles
+* projection checks
+* asymmetry feature tables
+
+---
+
+## Output Artifacts
+
+The repository produces several types of outputs depending on the stage being run.
+
+From preprocessing:
+
+* binary masks
+* masked radiometric arrays
+* distribution plots of the dataset by view and class
+
+From the geometric pipeline:
+
+* ordered contours
+* anchor points
+* reconstructed curves
+* lofted 3D visualization outputs
+
+From BreastNet3D:
+
+* `3dbreastnet_best.pth`
+* `3dbreastnet_last.pth`
+* `training_history.png`
+* patient-level `.npy` volumes
+* angle estimates in `.json`
+* projection comparison images
+* asymmetry feature CSV files
+
+---
+
+## Mathematical Notes
+
+### Rotation matrix
+
+The learned and geometric pipelines both rely on a rotation around the $Y$ axis:
+
+$$
+R_y(\theta) =
+\begin{bmatrix}
+\cos\theta & 0 & \sin\theta & 0 \\
+0 & 1 & 0 & 0 \\
+-\sin\theta & 0 & \cos\theta & 0
+\end{bmatrix}
+$$
+
+### Asymmetry feature
+
+The post-reconstruction feature extraction computes a left-right asymmetry score from the binary volume:
+
+$$
+Asymmetry_{LR} = \frac{|V_{left} - V_{right}|}{V_{left} + V_{right} + \epsilon}
+$$
+
+This is a simple but useful descriptor for comparing shape imbalance between the two sides of the breast.
+
+---
+
+## Practical Notes for Future Contributors
+
+Zifa and Jessie: if you continue this project, the main thing to preserve is consistency in the view convention and patient grouping logic. Most reconstruction errors in this kind of pipeline come from mislabeled views, incomplete patient sets, or changing the angle sign convention halfway through the workflow.
+
+When extending the code, keep the following in mind:
+
+* Keep the five-view ordering fixed as RL, RO, F, LO, LL unless you update every dependent stage.
+* Keep the angle convention consistent with the repository notes and the paper-aligned registration logic.
+* Keep the preprocessing output format stable so older notebooks remain reproducible.
+* If you change the segmentation checkpoint, confirm that the mask generation remains compatible with the reconstruction notebook.
+* If you change the reconstruction volume size, update the encoder, decoder, renderer, and export routines together.
+
+---
+
+## Suggested Workflow
+
+If you are resuming the project from scratch, a reasonable order is:
+
+1. Run [watershed_background_removal.py](watershed_background_removal.py) if you need background-cleaned inputs.
+2. Review [KPE_Current.ipynb](UNET_Segmentation/KPE_Current.ipynb) for the geometric logic and historical reconstruction assumptions.
+3. Use [breastnet3d_fixed.ipynb](UNET_Segmentation/3DBreastnet/breastnet3d_fixed.ipynb) for the current learned 3D reconstruction path.
+4. Consult [CNNVAE_test.py](CNNVAE_test.py) only if you need the exploratory latent-space experiment.
+
+---
+
+## Selected References
+
+This repository is inspired by and should be read alongside the following literature:
+
+* Costa et al., the thermography-based 3D breast surface modeling paper that motivated the geometric reconstruction pipeline.
+* Ronneberger, Fischer, and Brox, U-Net: Convolutional Networks for Biomedical Image Segmentation.
+* Kingma and Welling, Auto-Encoding Variational Bayes.
+* Vincent and Soille, Watersheds in Digital Spaces: An Efficient Algorithm Based on Immersion Simulations.
+
+These are the key conceptual references behind the segmentation, masking, geometric contouring, and learned representation steps used in the repository.
+
+---
+
+## Repository Files Worth Reading First
+
+* [README.md](README.md)
+* [KPE_Current.ipynb](UNET_Segmentation/KPE_Current.ipynb)
+* [breastnet3d.ipynb](UNET_Segmentation/3DBreastnet/breastnet3d.ipynb)
+* [breastnet3d_fixed.ipynb](UNET_Segmentation/3DBreastnet/breastnet3d_fixed.ipynb)
+* [watershed_background_removal.py](watershed_background_removal.py)
+* [CNNVAE_test.py](CNNVAE_test.py)
+* [reconstruct_3d_breast.py](reconstruct_3d_breast.py)
+
+This is the best starting point for anyone taking over the project.
