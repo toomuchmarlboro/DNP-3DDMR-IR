@@ -22,7 +22,7 @@ The repository contains two broad families of work.
 
 The first family is the earlier geometric pipeline captured in [KPE_Current.ipynb](UNET_Segmentation/KPE_Current.ipynb). That notebook focuses on contour extraction, keypoint detection, rigid registration, and lofting a 3D breast surface from ordered 2D curves. It follows the methodology inspired by Costa et al. and implements the project’s 2.5D geometric interpretation of the thermographic views.
 
-The second family is the newer learned reconstruction path, centered on [breastnet3d.ipynb](UNET_Segmentation/3DBreastnet/breastnet3d.ipynb) and the fixed companion notebook [breastnet3d_fixed.ipynb](UNET_Segmentation/3DBreastnet/breastnet3d_fixed.ipynb). This version uses five-view binary masks as input to an encoder-decoder model, predicts a 3D occupancy volume, and then renders differentiable projections back into the five canonical views for self-supervised training.
+The second family is the newer learned reconstruction path, centered on [breastnet3d.ipynb](UNET_Segmentation/3DBreastnet/breastnet3d.ipynb). This version uses five-view binary masks as input to an encoder-decoder model, predicts a 3D occupancy volume, and then renders differentiable projections back into the five canonical views for self-supervised training.
 
 In practical terms, the repository now covers three levels of work:
 
@@ -280,10 +280,13 @@ If you are resuming the project from scratch, a reasonable order is:
 
 This repository is inspired by and should be read alongside the following literature:
 
-* Costa et al., the thermography-based 3D breast surface modeling paper that motivated the geometric reconstruction pipeline.
-* Ronneberger, Fischer, and Brox, U-Net: Convolutional Networks for Biomedical Image Segmentation.
-* Kingma and Welling, Auto-Encoding Variational Bayes.
-* Vincent and Soille, Watersheds in Digital Spaces: An Efficient Algorithm Based on Immersion Simulations.
+* Arka Prabha Saha (2023), 3D-BreastNet: A Self-supervised Deep Learning Network for Reconstruction of 3D Breast Surface from 2D Thermal Images
+* Gleidson M. Costa (2023), Modeling the 3D Breast Surface Using Thermography
+* L.A. Bezerra (2013), Estimation of breast tumor thermal properties using infrared images
+* Thaweesak Trongtirakul (2023), Automated tumor segmentation in thermographic breast images
+* AAT Standard of Breast Thermography
+* HIKMICRO Pocket Series 2 Datasheet
+* DMR-IR dataset https://huggingface.co/datasets/SemilleroCV/DMR-IR
 
 These are the key conceptual references behind the segmentation, masking, geometric contouring, and learned representation steps used in the repository.
 
