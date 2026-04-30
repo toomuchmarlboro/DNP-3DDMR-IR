@@ -22,7 +22,7 @@ The repository contains two broad families of work.
 
 The first family is the earlier geometric pipeline captured in [KPE_Current.ipynb](UNET_Segmentation/KPE_Current.ipynb). That notebook focuses on contour extraction, keypoint detection, rigid registration, and lofting a 3D breast surface from ordered 2D curves. It follows the methodology inspired by Costa et al. and implements the project’s 2.5D geometric interpretation of the thermographic views.
 
-The second family is the newer learned reconstruction path, centered on [breastnet3d.ipynb](UNET_Segmentation/3DBreastnet/breastnet3d.ipynb). This version uses five-view binary masks as input to an encoder-decoder model, predicts a 3D occupancy volume, and then renders differentiable projections back into the five canonical views for self-supervised training.
+The second family is the newer learned reconstruction path, centered on [breastnet3d_v4.ipynb](UNET_Segmentation/3DBreastnet/breastnet3d_v4.ipynb). This final version uses five-view binary masks as input to an encoder-decoder model, predicts a 128x128x128 3D occupancy volume, and then renders differentiable projections back into the five canonical views for self-supervised training.
 
 In practical terms, the repository now covers three levels of work:
 
@@ -54,7 +54,7 @@ This notebook is important because it defines the project’s anatomical logic: 
 
 ### 4. Learned 3D reconstruction
 
-The current BreastNet3D notebooks extend the project into a learned reconstruction formulation. Instead of lofting a surface directly from curve geometry, the model learns a latent representation from the 5-view masks and decodes it into a 3D occupancy volume.
+The current BreastNet3D notebooks (specifically `breastnet3d_v4.ipynb`) extend the project into a robust learned reconstruction formulation. Instead of lofting a surface directly from curve geometry, the model learns a latent representation from the 5-view masks and decodes it into a 3D occupancy volume. The training pipeline resolves FP16 gradient overflow via forced FP32 rendering and achieves high geometric accuracy (~0.84 Dice score).
 
 This is the current working direction of the project in the repository.
 
@@ -116,9 +116,9 @@ The notebook visualizes the result and then constructs a lofted surface from the
 
 ---
 
-## Current Work: BreastNet3D Notebook
+## Current Work: BreastNet3D (v4)
 
-The current BreastNet3D notebook is the most important file for the next stage of the project. It is a self-supervised learned reconstruction pipeline that starts from five-view masks and predicts a 3D volume.
+The current BreastNet3D notebook (`breastnet3d_v4.ipynb`) is the most important file for the next stage of the project. It is a stable, self-supervised learned reconstruction pipeline that starts from five-view masks and predicts a 3D volume.
 
 ### Core idea
 
@@ -136,12 +136,21 @@ where $V_{rot}$ is the rotated volume and the sum is taken over the depth dimens
 
 The current notebook uses the following components:
 
-* a frozen U-Net segmentation model to obtain masks when masks are missing on disk
+* a frozen U-Net segmentation model to dynamically obtain masks at runtime
 * a patient grouper that selects only complete 5-view patients
 * a 2D encoder that maps the 5-channel mask tensor to a 1000-dimensional latent vector
 * a 3D decoder that expands the latent code into a $128 \times 128 \times 128$ occupancy volume
-* a differentiable visual-hull style renderer for consistency training
-* inference routines that recover the best per-view angles and map temperature information onto the reconstructed volume
+* a differentiable visual-hull style renderer for consistency training, strictly executing in `float32` to prevent NaN gradient collapse
+* inference routines that recover the best per-view angles and map RAW temperature information onto the reconstructed volume using interactive WebGL (Plotly)
+
+### 3D Temperature Overlay (Sec 2.2.5)
+
+Following the canonical paper methodology, `breastnet3d_v4.ipynb` includes a rigorous implementation for mapping 2D thermal data onto the generated 3D silhouette:
+1. **View Angle Estimation**: Minimizes the Dice loss between the 2D silhouette and projections of the 3D volume to find the precise estimated view angle (e.g., searching $\pm 20^\circ$ around base angles).
+2. **Ray-Cast Visibility**: Rotates the volume vertices and calculates normal vectors to map only front-facing geometry, avoiding back-projection.
+3. **Absolute Thermal Mapping**: Directly samples the absolute temperatures (°C) from the original RAW `.tiff` images (bypassing Min-Max normalized tensors).
+4. **Missing Data Interpolation**: Resolves geometric self-occlusion ("black spots") by applying K-Nearest-Neighbor interpolation across the 3D surface.
+5. **Smoothing**: Pre-processes the volume via 3D Gaussian smoothing prior to `marching_cubes` to eliminate voxel staircasing artifacts.
 
 ### Self-supervised training objective
 
@@ -296,10 +305,10 @@ These are the key conceptual references behind the segmentation, masking, geomet
 
 * [README.md](README.md)
 * [KPE_Current.ipynb](UNET_Segmentation/KPE_Current.ipynb)
-* [breastnet3d.ipynb](UNET_Segmentation/3DBreastnet/breastnet3d.ipynb)
-* [breastnet3d_fixed.ipynb](UNET_Segmentation/3DBreastnet/breastnet3d_fixed.ipynb)
+* [breastnet3d_v4.ipynb](UNET_Segmentation/3DBreastnet/breastnet3d_v4.ipynb) (Finalized Reconstruction Pipeline)
 * [watershed_background_removal.py](watershed_background_removal.py)
 * [CNNVAE_test.py](CNNVAE_test.py)
 * [reconstruct_3d_breast.py](reconstruct_3d_breast.py)
+* [view_patient_tiffs.py](UNET_Segmentation/3DBreastnet/view_patient_tiffs.py) (CLI utility for viewing absolute temperature data per patient)
 
 This is the best starting point for anyone taking over the project.
