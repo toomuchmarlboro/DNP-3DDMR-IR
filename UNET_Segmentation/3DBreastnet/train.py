@@ -124,7 +124,7 @@ def train(cfg):
 
     # U-Net (frozen)
     unet = UNet().to(device)
-    unet.load_state_dict(torch.load(cfg["unet_ckpt"], map_location=device))
+    unet.load_state_dict(torch.load(cfg["unet_ckpt"], map_location=device, weights_only=False))
     unet.eval()
     for p in unet.parameters(): p.requires_grad = False
 
