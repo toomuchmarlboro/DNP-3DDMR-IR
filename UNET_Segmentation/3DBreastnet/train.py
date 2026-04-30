@@ -191,11 +191,17 @@ def train(cfg):
                                                 m5[:, i:i+1])
                 loss = loss / (5*cfg["n_per_view"])
             scaler.scale(loss).backward()
-            scaler.unscale_(opt)
-            torch.nn.utils.clip_grad_norm_(
-                list(enc.parameters())+list(dec.parameters()), 1.0)
-            scaler.step(opt); scaler.update()
-            ep_loss += loss.item()
+            # NaN guard: skip update if loss exploded
+            if torch.isfinite(loss):
+                scaler.unscale_(opt)
+                torch.nn.utils.clip_grad_norm_(
+                    list(enc.parameters())+list(dec.parameters()), 1.0)
+                scaler.step(opt); scaler.update()
+            else:
+                print(f"  ⚠ NaN loss in epoch {epoch}, skipping batch")
+                opt.zero_grad(set_to_none=True)
+                scaler.update()
+            ep_loss += loss.item() if torch.isfinite(loss) else 0.0
         ep_loss /= max(len(trn_dl), 1)
 
         # ── val ──

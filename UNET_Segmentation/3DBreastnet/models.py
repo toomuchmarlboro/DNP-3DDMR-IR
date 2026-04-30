@@ -125,10 +125,13 @@ class Decoder3D(nn.Module):
         return self.out(x)
 
 # ── Differentiable projection (Eq. 1-3 from paper) ──────────
+# Must run in float32 to avoid fp16 overflow on 128-depth sum
+@torch.amp.custom_fwd(device_type="cuda", cast_inputs=torch.float32)
 def render_projection(volume, theta_deg):
-    B,C,D,H,W = volume.shape; dev = volume.device; dt = volume.dtype
+    B,C,D,H,W = volume.shape; dev = volume.device
     if not isinstance(theta_deg, torch.Tensor):
-        theta_deg = torch.full((B,), float(theta_deg), device=dev, dtype=dt)
+        theta_deg = torch.full((B,), float(theta_deg), device=dev, dtype=torch.float32)
+    theta_deg = theta_deg.float()
     rad = theta_deg * math.pi / 180.0
     c, s = torch.cos(rad), torch.sin(rad)
     z, o = torch.zeros_like(rad), torch.ones_like(rad)
