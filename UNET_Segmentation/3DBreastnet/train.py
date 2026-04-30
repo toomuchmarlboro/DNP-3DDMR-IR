@@ -30,7 +30,6 @@ CFG = {
     "patience":     50,
     "ckpt_dir":     "checkpoints_3d",
     "tiff_base":    r"C:\Users\LENOVO THINKPAD T14\Documents\PROPOSAL TA\files\Rodriguez-Guerrero Dataset\Breast Thermography\3D Reconstruction\data\organized_by_patient",
-    "mask_base":    r"C:\Users\LENOVO THINKPAD T14\Documents\PROPOSAL TA\files\Rodriguez-Guerrero Dataset\Breast Thermography\3D Reconstruction\data\GroundTruth_Masks",
     "unet_ckpt":    r"..\breast_segmentation_unet_best_gpu.pth",
 }
 
@@ -42,7 +41,6 @@ class PatientGroup:
     patient_id: str
     label: str
     views: Dict[str, Path]
-    masks: Dict[str, Path]
 
 def get_view_key(filename):
     n = filename.lower()
@@ -53,8 +51,8 @@ def get_view_key(filename):
     if "left later"  in n: return "LL"
     return None
 
-def build_patient_groups(tiff_base, mask_base):
-    tb, mb = Path(tiff_base), Path(mask_base)
+def build_patient_groups(tiff_base):
+    tb = Path(tiff_base)
     pd_ = {}
     for tp in tb.rglob("*.tiff"):
         parts = tp.relative_to(tb).parts
@@ -63,17 +61,12 @@ def build_patient_groups(tiff_base, mask_base):
         vk = get_view_key(fn)
         if not vk: continue
         key = (pid, lab)
-        if key not in pd_: pd_[key] = {"views": {}, "masks": {}}
+        if key not in pd_: pd_[key] = {"views": {}}
         pd_[key]["views"][vk] = tp
-        md = mb / pid / lab
-        if md.exists():
-            for mf in md.iterdir():
-                if get_view_key(mf.name) == vk:
-                    pd_[key]["masks"][vk] = mf; break
     groups, skip, nb_, nm = [], 0, 0, 0
     for (pid, lab), d in pd_.items():
         if len(d["views"]) == 5:
-            groups.append(PatientGroup(pid, lab, d["views"], d["masks"]))
+            groups.append(PatientGroup(pid, lab, d["views"]))
             nb_ += lab.lower() == "benign"; nm += lab.lower() != "benign"
         else:
             print(f"  Skip {pid} ({lab}): {len(d['views'])}/5 views"); skip += 1
@@ -96,16 +89,10 @@ class PatientDataset(Dataset):
             mn, mx = raw.min(), raw.max()
             norm = (raw - mn) / (mx - mn + 1e-8)
             thermals.append(norm)
-            mp = g.masks.get(v)
-            if mp and Path(mp).exists():
-                arr = np.fromfile(str(mp), dtype=np.uint8)
-                mi = cv2.imdecode(arr, cv2.IMREAD_GRAYSCALE)
-                mi = cv2.resize(mi, (self.img_sz, self.img_sz), interpolation=cv2.INTER_NEAREST)
-                m = (mi / 255.0 > 0.5).astype(np.float32)
-            else:
-                with torch.no_grad():
-                    inp = torch.tensor(norm).unsqueeze(0).unsqueeze(0).to(self.device)
-                    m = (torch.sigmoid(self.unet(inp)).squeeze().cpu().numpy() > 0.5).astype(np.float32)
+            # Always use U-Net for consistent segmentation
+            with torch.no_grad():
+                inp = torch.tensor(norm).unsqueeze(0).unsqueeze(0).to(self.device)
+                m = (torch.sigmoid(self.unet(inp)).squeeze().cpu().numpy() > 0.5).astype(np.float32)
             masks.append(cv2.resize(m, (128,128), interpolation=cv2.INTER_NEAREST))
         return {
             "masks_5ch": torch.tensor(np.stack(masks), dtype=torch.float32),
@@ -142,7 +129,7 @@ def train(cfg):
     for p in unet.parameters(): p.requires_grad = False
 
     # Data
-    groups = build_patient_groups(cfg["tiff_base"], cfg["mask_base"])
+    groups = build_patient_groups(cfg["tiff_base"])
     rng = random.Random(cfg["seed"])
     ben = [g for g in groups if g.label.lower()=="benign"]
     mal = [g for g in groups if g.label.lower()!="benign"]
@@ -191,16 +178,16 @@ def train(cfg):
                                                 m5[:, i:i+1])
                 loss = loss / (5*cfg["n_per_view"])
             scaler.scale(loss).backward()
-            # NaN guard: skip update if loss exploded
+            scaler.unscale_(opt)
+            # NaN guard: skip step if loss exploded
             if torch.isfinite(loss):
-                scaler.unscale_(opt)
                 torch.nn.utils.clip_grad_norm_(
                     list(enc.parameters())+list(dec.parameters()), 1.0)
-                scaler.step(opt); scaler.update()
+                scaler.step(opt)
             else:
                 print(f"  ⚠ NaN loss in epoch {epoch}, skipping batch")
-                opt.zero_grad(set_to_none=True)
-                scaler.update()
+            scaler.update()
+            opt.zero_grad(set_to_none=True)
             ep_loss += loss.item() if torch.isfinite(loss) else 0.0
         ep_loss /= max(len(trn_dl), 1)
 
