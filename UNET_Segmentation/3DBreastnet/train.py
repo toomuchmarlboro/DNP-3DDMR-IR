@@ -23,7 +23,7 @@ from models import (UNet, Encoder2D, Decoder3D,
 CFG = {
     "epochs":       400,
     "batch_size":   2,
-    "lr":           0.001,
+    "lr":           1e-4,
     "betas":        (0.5, 0.9),
     "n_per_view":   2,
     "seed":         42,
@@ -169,14 +169,16 @@ def train(cfg):
             opt.zero_grad(set_to_none=True)
             with torch.amp.autocast("cuda", enabled=torch.cuda.is_available()):
                 vol = dec(enc(m5))
-                loss = torch.tensor(0.0, device=device)
-                for i in range(5):
-                    lo, hi = VIEW_WINDOWS[i]
-                    for _ in range(cfg["n_per_view"]):
-                        th = torch.rand(B, device=device)*(hi-lo)+lo
-                        loss = loss + dice_loss(render_projection(vol, th),
-                                                m5[:, i:i+1])
-                loss = loss / (5*cfg["n_per_view"])
+            
+            vol = vol.float()
+            loss = torch.tensor(0.0, device=device)
+            for i in range(5):
+                lo, hi = VIEW_WINDOWS[i]
+                for _ in range(cfg["n_per_view"]):
+                    th = torch.rand(B, device=device)*(hi-lo)+lo
+                    loss = loss + dice_loss(render_projection(vol, th),
+                                            m5[:, i:i+1])
+            loss = loss / (5*cfg["n_per_view"])
             scaler.scale(loss).backward()
             scaler.unscale_(opt)
             # NaN guard: skip step if loss exploded
@@ -199,14 +201,16 @@ def train(cfg):
                 m5 = batch["masks_5ch"].to(device); B = m5.size(0)
                 with torch.amp.autocast("cuda", enabled=torch.cuda.is_available()):
                     vol = dec(enc(m5))
-                    for i in range(5):
-                        th = torch.full((B,), val_angles[i], device=device)
-                        proj = render_projection(vol, th)
-                        dl = dice_loss(proj, m5[:, i:i+1])
-                        vl += dl.item(); vd += (1-dl).item()
-                        pb = (proj>0.5).cpu().numpy()
-                        mb = (m5[:, i:i+1]>0.5).cpu().numpy()
-                        for b in range(B): vh += hd95(pb[b,0], mb[b,0]); cnt += 1
+                
+                vol = vol.float()
+                for i in range(5):
+                    th = torch.full((B,), val_angles[i], device=device)
+                    proj = render_projection(vol, th)
+                    dl = dice_loss(proj, m5[:, i:i+1])
+                    vl += dl.item(); vd += (1-dl).item()
+                    pb = (proj>0.5).cpu().numpy()
+                    mb = (m5[:, i:i+1]>0.5).cpu().numpy()
+                    for b in range(B): vh += hd95(pb[b,0], mb[b,0]); cnt += 1
         vl /= max(len(val_dl)*5,1); vd /= max(len(val_dl)*5,1)
         vh /= max(cnt,1)
         elapsed = time.time()-t0
