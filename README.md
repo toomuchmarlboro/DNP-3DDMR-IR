@@ -285,6 +285,15 @@ If you are resuming the project from scratch, a reasonable order is:
 
 ---
 
+## Future Direction: Physics-Informed Neural Networks (PINNs)
+
+The next major research phase is leveraging the 3D reconstructed geometries to solve the **Inverse Pennes Bioheat Equation** and locate internal metabolic heat sources (tumors). 
+Instead of relying on computationally heavy classical Finite Element Method (FEM) solvers like COMSOL or ANSYS, we propose building a **Physics-Informed Neural Network (PINN)** natively in PyTorch. 
+
+By defining the tumor parameters ($x_t, y_t, z_t, r_t$) as learnable PyTorch parameters and enforcing the PDE as a physics loss function inside the 3D voxel grid, we can simultaneously solve the forward and inverse bioheat problem. For a detailed breakdown of this proposed methodology, please see [PINN_Bioheat_Proposal.md](PINN_Bioheat_Proposal.md).
+
+---
+
 ## Selected References
 
 This repository is inspired by and should be read alongside the following literature:
