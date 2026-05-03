@@ -280,7 +280,7 @@ If you are resuming the project from scratch, a reasonable order is:
 
 1. Run [watershed_background_removal.py](watershed_background_removal.py) if you need background-cleaned inputs.
 2. Review [KPE_Current.ipynb](UNET_Segmentation/KPE_Current.ipynb) for the geometric logic and historical reconstruction assumptions.
-3. Use [breastnet3d_fixed.ipynb](UNET_Segmentation/3DBreastnet/breastnet3d_fixed.ipynb) for the current learned 3D reconstruction path.
+3. Use [breastnet3d_v4.ipynb](UNET_Segmentation/3DBreastnet/breastnet3d_v4.ipynb) for the current learned 3D reconstruction path.
 4. Consult [CNNVAE_test.py](CNNVAE_test.py) only if you need the exploratory latent-space experiment.
 
 ---
