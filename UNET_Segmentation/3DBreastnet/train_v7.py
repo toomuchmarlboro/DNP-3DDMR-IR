@@ -1,6 +1,20 @@
-"""3DBreastNet — Training script for 128³ voxel reconstruction.
-Usage:  python train.py
 """
+train_v7.py — 3DBreastNet V7 Training Script
+==============================================
+Copy each section (Phase 1–4) into separate notebook cells.
+
+Key V7 changes vs V5/V6:
+  - 8192-d bottleneck (was 1000)
+  - Deep residual fusion block (was 2-layer)
+  - +4.0 bias init (was -4.0) → start full, sculpt down
+  - Volume sparsity penalty: loss += 0.05 * vol.mean()
+  - ReduceLROnPlateau scheduler
+  - All paths relative to REPO_ROOT (portable laptop ↔ SSH)
+"""
+
+# ════════════════════════════════════════════════════════════════
+# PHASE 1: IMPORTS + CONFIG
+# ════════════════════════════════════════════════════════════════
 import os, sys, time, random, json, math
 import numpy as np, cv2, tifffile, pandas as pd
 import matplotlib; matplotlib.use("Agg")
@@ -14,12 +28,12 @@ import torch, torch.nn as nn, torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
 import scipy.ndimage
 
-from models import (UNet, Encoder2D, Decoder3D,
-                    render_projection, dice_loss, VIEW_WINDOWS)
+# ── Portable repo root (works on Windows laptop AND Linux SSH) ──
+REPO_ROOT = Path(".").resolve()
+while REPO_ROOT.name != "DNP-3DDMR-IR" and REPO_ROOT != REPO_ROOT.parent:
+    REPO_ROOT = REPO_ROOT.parent
+print(f"REPO_ROOT = {REPO_ROOT}")
 
-# ════════════════════════════════════════════════════════════════
-# CONFIG
-# ════════════════════════════════════════════════════════════════
 CFG = {
     "epochs":       400,
     "batch_size":   2,
@@ -28,13 +42,21 @@ CFG = {
     "n_per_view":   2,
     "seed":         42,
     "patience":     50,
-    "ckpt_dir":     "checkpoints_3d",
-    "tiff_base":    r"C:\Users\LENOVO THINKPAD T14\Documents\PROPOSAL TA\files\Rodriguez-Guerrero Dataset\Breast Thermography\3D Reconstruction\data\organized_by_patient",
-    "unet_ckpt":    r"..\breast_segmentation_unet_best_gpu.pth",
+    "ckpt_dir":     "checkpoints_3d_v7",
+    "tiff_base":    str(REPO_ROOT / "data" / "organized_by_patient"),
+    "unet_ckpt":    str(REPO_ROOT / "UNET_Segmentation" / "breast_segmentation_unet_best_gpu.pth"),
 }
 
+# ── Import V7 models ──
+from models_v7 import (
+    UNet, Encoder2D, Decoder3D,
+    compute_visual_hull, render_projection,
+    dice_loss, boundary_loss, VIEW_WINDOWS,
+)
+
+
 # ════════════════════════════════════════════════════════════════
-# DATA
+# PHASE 2: DATA LOADING
 # ════════════════════════════════════════════════════════════════
 @dataclass
 class PatientGroup:
@@ -89,7 +111,6 @@ class PatientDataset(Dataset):
             mn, mx = raw.min(), raw.max()
             norm = (raw - mn) / (mx - mn + 1e-8)
             thermals.append(norm)
-            # Always use U-Net for consistent segmentation
             with torch.no_grad():
                 inp = torch.tensor(norm).unsqueeze(0).unsqueeze(0).to(self.device)
                 m = (torch.sigmoid(self.unet(inp)).squeeze().cpu().numpy() > 0.5).astype(np.float32)
@@ -100,8 +121,9 @@ class PatientDataset(Dataset):
             "patient_id": g.patient_id, "label": g.label,
         }
 
+
 # ════════════════════════════════════════════════════════════════
-# METRICS
+# PHASE 3: METRICS
 # ════════════════════════════════════════════════════════════════
 def hd95(p, t):
     if p.sum()==0 or t.sum()==0: return 128.0
@@ -113,8 +135,9 @@ def hd95(p, t):
     d2 = np.percentile(dtp[te], 95) if te.sum()>0 else 128.0
     return max(d1, d2)
 
+
 # ════════════════════════════════════════════════════════════════
-# TRAIN
+# PHASE 4: TRAINING LOOP
 # ════════════════════════════════════════════════════════════════
 def train(cfg):
     torch.manual_seed(cfg["seed"]); np.random.seed(cfg["seed"])
@@ -144,7 +167,7 @@ def train(cfg):
     val_dl = DataLoader(PatientDataset(val, unet, device),
                         batch_size=cfg["batch_size"], shuffle=False)
 
-    # Models
+    # Models (V7 architecture)
     enc = Encoder2D().to(device)
     dec = Decoder3D().to(device)
     opt = torch.optim.Adam(list(enc.parameters())+list(dec.parameters()),
@@ -168,20 +191,26 @@ def train(cfg):
             B = m5.size(0)
             opt.zero_grad(set_to_none=True)
             with torch.amp.autocast("cuda", enabled=torch.cuda.is_available()):
-                vol = dec(enc(m5))
-            
+                hull = compute_visual_hull(m5, device)
+                vol = dec(enc(m5), hull)
+
             vol = vol.float()
             loss = torch.tensor(0.0, device=device)
             for i in range(5):
                 lo, hi = VIEW_WINDOWS[i]
                 for _ in range(cfg["n_per_view"]):
                     th = torch.rand(B, device=device)*(hi-lo)+lo
-                    loss = loss + dice_loss(render_projection(vol, th),
-                                            m5[:, i:i+1])
+                    proj = render_projection(vol, th)
+                    gt_mask = m5[:, i:i+1]
+                    dl = dice_loss(proj, gt_mask)
+                    bl = boundary_loss(proj, gt_mask)
+                    loss = loss + dl + (2.0 * bl)
+
             loss = loss / (5*cfg["n_per_view"])
+            # V7: Volume sparsity penalty — carve away unseen geometry
+            loss = loss + 0.05 * vol.mean()
             scaler.scale(loss).backward()
             scaler.unscale_(opt)
-            # NaN guard: skip step if loss exploded
             if torch.isfinite(loss):
                 torch.nn.utils.clip_grad_norm_(
                     list(enc.parameters())+list(dec.parameters()), 1.0)
@@ -200,8 +229,9 @@ def train(cfg):
             for batch in tqdm(val_dl, desc=f"E{epoch:03d} val", leave=False):
                 m5 = batch["masks_5ch"].to(device); B = m5.size(0)
                 with torch.amp.autocast("cuda", enabled=torch.cuda.is_available()):
-                    vol = dec(enc(m5))
-                
+                    hull = compute_visual_hull(m5, device)
+                vol = dec(enc(m5), hull)
+
                 vol = vol.float()
                 for i in range(5):
                     th = torch.full((B,), val_angles[i], device=device)
