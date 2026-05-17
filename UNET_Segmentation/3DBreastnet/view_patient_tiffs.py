@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # Absolute path to the dataset
-DATA_DIR = Path(r"C:\Users\LENOVO THINKPAD T14\Documents\PROPOSAL TA\files\Rodriguez-Guerrero Dataset\Breast Thermography\3D Reconstruction\data\organized_by_patient")
+DATA_DIR = Path(r"../DNP-3DDMR-IR/data/organized_by_patient")
 
 def get_view_key(filename):
     n = filename.lower()
