@@ -285,6 +285,21 @@ If you are resuming the project from scratch, a reasonable order is:
 
 ---
 
+## Recent Updates: BreastNet3D (v5) and Dataset Integration
+
+### BreastNet3D (v5)
+The pipeline has been upgraded to its next iteration in [breastnet3d_v5.ipynb](UNET_Segmentation/3DBreastnet/breastnet3d_v5.ipynb), which builds upon the foundation of v4. Key findings and improvements in v5 include:
+* **Architecture:** Maintains a 128x128x128 voxel reconstruction derived from a 1000-dimensional latent representation, but implements structural improvements like `DoubleConv3D` blocks and gradient checkpointing in the 3D Decoder for memory-efficient backpropagation.
+* **Data Curation:** Explicitly filters incomplete patients (e.g., those with fewer than 5 valid views) to ensure strict alignment. In recent training runs, it isolated 122 complete patient sets from a pool of 137.
+* **Validation Performance:** Showcases strong generalization and reconstruction quality, achieving average validation Dice score of approximately 0.8484 and average HD95 of 12.46.
+
+### DMR-IR Dataset Verification
+Exploratory dataset work is captured in [datasettest.ipynb](Previous Works (VAE, legacy stuff, misc)/datasettest.ipynb), where we:
+* Utilized the Hugging Face `datasets` library to stream dataset metadata from `SemilleroCV/DMR-IR` without downloading the full 5GB contents.
+* Programmatically extracted and verified all `ClassLabel` categorical features. This ensures that the dataset’s built-in labels are properly understood and mapped for any future classification or conditional generation tasks in the pipeline.
+
+---
+
 ## Future Direction: Physics-Informed Neural Networks (PINNs)
 
 The next major research phase is leveraging the 3D reconstructed geometries to solve the **Inverse Pennes Bioheat Equation** and locate internal metabolic heat sources (tumors). 
@@ -313,11 +328,10 @@ These are the key conceptual references behind the segmentation, masking, geomet
 ## Repository Files Worth Reading First
 
 * [README.md](README.md)
+* [UNET_Segmentation_newest.ipynb](<UNET_Segmentation/Masking and Segmentation/UNET_Segmentation_newest.ipynb>)
 * [KPE_Current.ipynb](UNET_Segmentation/KPE_Current.ipynb)
-* [breastnet3d_v4.ipynb](UNET_Segmentation/3DBreastnet/breastnet3d_v4.ipynb) (Finalized Reconstruction Pipeline)
-* [watershed_background_removal.py](watershed_background_removal.py)
+* [breastnet3d_v5.ipynb](UNET_Segmentation/3DBreastnet/breastnet3d_v5.ipynb) (Upgraded Reconstruction Pipeline)
 * [CNNVAE_test.py](CNNVAE_test.py)
-* [reconstruct_3d_breast.py](reconstruct_3d_breast.py)
 * [view_patient_tiffs.py](UNET_Segmentation/3DBreastnet/view_patient_tiffs.py) (CLI utility for viewing absolute temperature data per patient)
 
 This is the best starting point for anyone taking over the project.
