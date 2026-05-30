@@ -1,0 +1,30 @@
+Page 1: of the breast surface from their acquisition in ﬁve diﬀerent angles. Firstly, | breast segmentation is performed using U-Nets trained for each angle. | Then, the segmented edges are transformed into parametric curves. Geo-
+Page 1: breast segmentation is performed using U-Nets trained for each angle. | Then, the segmented edges are transformed into parametric curves. Geo- | metric transformation converts these curves from two-dimensional (2d)
+Page 3: by using texture mapping. | Segmentation uses U-net model of Convolutional Neural Networks (CNN) to | performed the breast segmentation [ 12,13]. In fact, 5 CNNs of this model are
+Page 3: Segmentation uses U-net model of Convolutional Neural Networks (CNN) to | performed the breast segmentation [ 12,13]. In fact, 5 CNNs of this model are | trained (i.e. hyper parameters are generated for 5 U-nets) each to be used in one
+Page 3: − 4 is used [ 14]. This allows the | region of the breasts to be separated (i.e. segmented) from the rest of the image, | as shown in Fig. 2. It is noteworthy to emphasize that, given the preliminary
+Page 3: as shown in Fig. 2. It is noteworthy to emphasize that, given the preliminary | nature of this study, segmentation evaluations in comparison with a ground truth | standard were not conducted. The analysis of segmented images was subjectively
+Page 3: nature of this study, segmentation evaluations in comparison with a ground truth | standard were not conducted. The analysis of segmented images was subjectively | carried out for validation purposes. Those results without apparently satisfactory
+Page 3: carried out for validation purposes. Those results without apparently satisfactory | segmentations were simply excluded of the process. | Fig. 2. Example of segmentation outputs with the 5 U-nets.
+Page 3: segmentations were simply excluded of the process. | Fig. 2. Example of segmentation outputs with the 5 U-nets.
+Page 4: 48 G. M. Costa et al. | Reﬁnement was next performed since the U-net segmentation can present more | areas then the regions shown in Fig.2. Such areas must be removed, in order to
+Page 4: the 5 views leaving only the largest edge in each one. | Fig. 3. Reﬁnement of the obtained segmentation in case of more than one area exists | as a result of neural network segmentation.
+Page 4: Fig. 3. Reﬁnement of the obtained segmentation in case of more than one area exists | as a result of neural network segmentation. | Identiﬁcation of the relevant edge and points of each view are important
+Page 5: and the third point is the lowest point of this curve (P2). Figure 5 shows these | points in the images resulting from segmentation in order to better identify their | meanings.
+Page 9: Modeling the 3D Breast Surface Using Thermography 53 | Algorithm 1. 3D Surface from 5 Segmentations | 1: Start
+Page 9: 2: Deﬁne X, Y , Z coordinates (X horizontal, Y vertically, Z = X × Y ) | 3: Load segmentations of 0◦,4 5◦,- 4 5◦,9 0◦,a n d- 9 0◦ exams | 4: Load original 0 ◦ exam
+Page 9: 4: Load original 0 ◦ exam | 5: for each segmentation do | 6: Apply threshold T to binarize it
+Page 9: 6: Apply threshold T to binarize it | 7: Perform segmentation reﬁnement using morphological operations | 8: Find and store edges of 0 ◦,4 5◦,- 4 5◦,9 0◦,a n d- 9 0◦ segmentations
+Page 9: 7: Perform segmentation reﬁnement using morphological operations | 8: Find and store edges of 0 ◦,4 5◦,- 4 5◦,9 0◦,a n d- 9 0◦ segmentations | 9: Find the inframammary curve of each segmentation and name it
+Page 9: 8: Find and store edges of 0 ◦,4 5◦,- 4 5◦,9 0◦,a n d- 9 0◦ segmentations | 9: Find the inframammary curve of each segmentation and name it | 2d list of relevant edges
+Page 9: 34: Deﬁne body edges | 35: Select point of 0 ◦ segmentation at left of P1 and name it Left body edge with | Z =0
+Page 9: Z =0 | 36: Select point of 0 ◦ segmentation at right of P3 and name it Right body edge with | Z =0
+Page 9: Z =0 | 37: Create a line from ( P2x,P 2y , 0) of 0 ◦ segmentation to ( P2x, 0, 0) and name it | middle line
+Page 10: generates a spatial model using NURBS. The algorithm used in the system after | the segmentation is present, as well. 140 exams was used generating the same | numbers of 3D models and exams. The generated models can be viewed at [19].
+Page 10: In the complete implementation, 5 U-nets Convolutional Neural Networks | (CNNs) were employed for the segmentation of breast regions. As a future | work, considering that the right and left lateral images are mirrored images,
+Page 10: work, considering that the right and left lateral images are mirrored images, | the segmentation process can be optimized by vertically ﬂipping the images, | thus training a single network to handle both lateral and oblique views. This
+Page 11: Modeling the 3D Breast Surface Using Thermography 55 | segment the breast in all views, improving the algorithm’s eﬃciency and yield- | ing accurate results [21,22]. In future works, we are considering also to compare
+Page 11: org/10.1109/IEMBS.2004.1403371 | 4. Lanisa, N., Cheok, N.S., Wee, L.K.: Color morphology and segmentation of the | breast thermography image. In: 2014 IEEE Conference on Biomedical Engineering
+Page 12: 12. Dalmia, A., Kakileti, S., Manjunath, G.: Exploring deep learning networks for | Tumour segmentation in infrared images. In: 14th International Conference on | Quantitative Infrared Thermography (2018)
+Page 12: 13. Ronneberger, O., Fischer, P., Brox, T.: U-Net: convolutional networks for biomed- | ical image segmentation. In: Navab, N., Hornegger, J., Wells, W.M., Frangi, A.F. | (eds.) MICCAI 2015. LNCS, vol. 9351, pp. 234–241. Springer, Cham (2015).
+Page 12: 22. Kakileti, S.T., Manjunath, G., Madhu, H.J.: Cascaded CNN for view independent | breast segmentation in thermal images. In: 41st Annual International Conference | of the IEEE Engineering in Medicine and Biology Society (EMBC), pp. 6294–6297
