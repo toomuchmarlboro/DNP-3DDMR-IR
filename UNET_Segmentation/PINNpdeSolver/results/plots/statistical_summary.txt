@@ -1,0 +1,26 @@
+==================================================
+STATISTICAL ANALYSIS SUMMARY REPORT
+==================================================
+Total Patients Analyzed: 120
+- Benign: 94
+- Malignant: 26
+
+--------------------------------------------------
+1. TUMOR RADIUS (r_t_mm) COMPARISON:
+- Benign Mean: 5.014 ± 1.172 mm
+- Malignant Mean: 5.028 ± 1.675 mm
+
+Statistical Significance:
+- Mann-Whitney U test p-value: 0.98221 (Not Significant)
+- Welch's T-test p-value: 0.96807 (Not Significant)
+
+--------------------------------------------------
+2. TUMOR VOLUME (volume_mm3) COMPARISON:
+- Benign Mean: 616.400 ± 449.690 mm³
+- Malignant Mean: 706.038 ± 655.522 mm³
+
+Statistical Significance:
+- Mann-Whitney U test p-value: 0.98221 (Not Significant)
+- Welch's T-test p-value: 0.51663 (Not Significant)
+
+==================================================

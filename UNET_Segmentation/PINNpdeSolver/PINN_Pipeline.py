@@ -921,9 +921,9 @@ for patient_idx in tqdm(range(len(dataset)), desc="Processing patients"):
         np.save(patient_dir / f"{pid}_surf_pts.npy",    geo["surface_pts"])
         np.save(patient_dir / f"{pid}_confidence.npy",  geo["confidence"])
 
-        # Export STL in patient folder (in voxel/mm units, NOT normalised to [-1,1])
+        # Export STL in patient folder (in registered mm coordinates)
         stl_path = patient_dir / f"{pid}.stl"
-        save_stl_binary(stl_path, geo["verts_raw"], geo["faces"])
+        save_stl_binary(stl_path, geo["surface_pts"], geo["faces"])
 
         # ── Step 2: PINN training ──
         print("  [2/4] Training PINN (multi-start)...")
