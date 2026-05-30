@@ -300,12 +300,29 @@ Exploratory dataset work is captured in [datasettest.ipynb](Previous Works (VAE,
 
 ---
 
-## Future Direction: Physics-Informed Neural Networks (PINNs)
+## Physics-Informed Neural Network (PINN) & FEM Bioheat Pipeline
 
-The next major research phase is leveraging the 3D reconstructed geometries to solve the **Inverse Pennes Bioheat Equation** and locate internal metabolic heat sources (tumors). 
-Instead of relying on computationally heavy classical Finite Element Method (FEM) solvers like COMSOL or ANSYS, we propose building a **Physics-Informed Neural Network (PINN)** natively in PyTorch. 
+We have fully implemented a clinical-grade, self-supervised pipeline for solving the **Inverse Pennes Bioheat Equation** to dynamically locate and characterize deep-tissue metabolic heat sources (tumors) inside the reconstructed 3D geometries.
 
-By defining the tumor parameters ($x_t, y_t, z_t, r_t$) as learnable PyTorch parameters and enforcing the PDE as a physics loss function inside the 3D voxel grid, we can simultaneously solve the forward and inverse bioheat problem. For a detailed breakdown of this proposed methodology, please see [PINN_Bioheat_Proposal.md](PINN_Bioheat_Proposal.md).
+The entire workflow is automated in [PINN_Pipeline.py](UNET_Segmentation/PINNpdeSolver/PINN_Pipeline.py) and visualized in [visualize_3d_temperatures.ipynb](UNET_Segmentation/PINNpdeSolver/visualize_3d_temperatures.ipynb).
+
+### 🚀 Key Capabilities:
+1. **Multi-Start Inverse PINN Solver:** Estimates tumor coordinates ($\mathbf{x}_t$), thermal radius ($r_t$), and metabolic heat generation ($Q_{max}$) natively in PyTorch. It leverages a hybrid optimization scheme (Adam with adaptive PDE weight re-normalization, followed by fine-tuning with the L-BFGS second-order optimizer).
+2. **FEM Forward Verification:** Natively integrates a finite element solver using **dolfinx (FEniCSx)** and **Gmsh** to solve the forward bioheat problem on the patient's solid 3D tetrahedral mesh. It enforces convective air cooling on the outer skin ($h_{conv}=10\text{ W/m}^2\text{K}$, $T_{air}=20^\circ\text{C}$) and a core body temperature Dirichlet boundary condition ($T=37^\circ\text{C}$) at the flat chest wall boundary to ensure biophysical accuracy.
+3. **Structured Database Export:** Automatically organizes outputs per-patient inside the `results/` folder:
+   * `results/{Patient_ID}/{Patient_ID}.stl` and `.msh`: Registered geometry meshes.
+   * `results/{Patient_ID}/{Patient_ID}_pinn.pth`: PyTorch model state weights.
+   * `results/{Patient_ID}/{Patient_ID}_loss_convergence.png`: High-resolution training convergence plot.
+   * `results/{Patient_ID}/{Patient_ID}_T_measured.npy`, `_surf_pts.npy`, `_T_fea.npy`: Grid arrays.
+   * `results/pinn_fea_results.csv`: Master data spreadsheet summarizing parameters and residuals across the cohort of 122 patients.
+4. **Interactive 3D Visualizer (`visualize_3d_temperatures.ipynb`):** A PyVista-based notebook that loads the registered tetrahedral meshes and the continuous PINN neural field. It allows users to rotate the breast in 3D and slice it vertically (sagittal plane) to inspect the deep tumor hyperthermia core in clinical dark mode.
+
+### 🏃‍♂️ Running the Pipeline:
+Navigate to the directory and run:
+```bash
+conda activate bioheat
+python PINN_Pipeline.py
+```
 
 ---
 
