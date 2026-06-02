@@ -8,22 +8,24 @@
 | $\theta_v \in \{-90°, -45°, 0°, 45°, 90°\}$ | Canonical view angles |
 | $I_v \in \mathbb{R}^{H \times W}$ | Radiometric TIFF (absolute °C) for view $v$ |
 | $M_v \in \{0,1\}^{H \times W}$ | UNet binary segmentation mask for view $v$ |
-| $\tilde{I}_v \in [0,1]^{H \times W}$ | Per-patient min-max normalised thermal image |
+| $\tilde{I}_v \in [0,1]^{H \times W}$ | Globally min-max normalised thermal image |
 | $\mathbf{x} = (x, y, z) \in \mathbb{R}^3$ | 3D query point in normalised world space $[-1,1]^3$ |
 | $\sigma(\mathbf{x}) \geq 0$ | Volume density (occupancy) at point $\mathbf{x}$ |
 | $T(\mathbf{x}) \in [0,1]$ | Normalised temperature at point $\mathbf{x}$ |
 
 ---
 
-## 1. Input Normalisation
+## 1. Input Normalisation (Global Normalisation Fix)
 
-Each patient's five thermal images are normalised independently to remove
-inter-patient temperature variation while preserving intra-patient contrast:
+Each patient's five thermal images are normalised using **Global Normalisation** across all views. This guarantees that a predicted scalar temperature $T(\mathbf{x}) = 0.8$ corresponds to the exact same absolute temperature regardless of which camera view it is projected into.
 
 $$\tilde{I}_v(u,w) = \frac{I_v(u,w) - T_{\min}}{T_{\max} - T_{\min} + \epsilon}$$
 
-where $T_{\min} = \min_{v,u,w} I_v(u,w)$, $T_{\max} = \max_{v,u,w} I_v(u,w)$,
+where $T_{\min}$ and $T_{\max}$ are the global minimum and maximum temperatures across **all** pixels in **all** $V$ views for a given patient:
+$T_{\min} = \min_{v,u,w} I_v(u,w)$ and $T_{\max} = \max_{v,u,w} I_v(u,w)$,
 and $\epsilon = 10^{-6}$ prevents division by zero.
+
+*(Decision Note: Per-view normalisation was explicitly rejected because it creates a mathematical contradiction where a single 3D point is forced to map to different normalised values depending on the view. Global normalisation resolves this multi-view thermal inconsistency.)*
 
 The absolute values $T_{\min}, T_{\max}$ are stored per-patient so the final
 3D temperature volume can be restored to °C at inference time:
@@ -73,12 +75,14 @@ and is discarded for the projection):
 
 $$\pi_v(\mathbf{x}) = \bigl(x^{(v)},\; y^{(v)}\bigr) \in [-1, 1]^2$$
 
-### 3.2 Bilinear Feature Sampling
+### 3.2 Bilinear Feature Sampling (Zero-Padding Fix)
 
 The feature vector at $\mathbf{x}$ from view $v$ is obtained by bilinear
 interpolation on the feature map:
 
-$$\mathbf{f}_v(\mathbf{x}) = \text{BilinearSample}\!\left(\mathbf{F}_v,\; \pi_v(\mathbf{x})\right) \in \mathbb{R}^C$$
+$$\mathbf{f}_v(\mathbf{x}) = \text{BilinearSample}\!\left(\mathbf{F}_v,\; \pi_v(\mathbf{x}),\; \text{padding}=\text{'zeros'}\right) \in \mathbb{R}^C$$
+
+*(Decision Note: PyTorch's default 'border' padding was replaced with 'zeros'. Border padding caused 3D points outside the camera frustum to clone edge pixels, creating lateral hallucination artifacts. Zero-padding ensures that out-of-bounds queries correctly return zero.)*
 
 ### 3.3 Permutation-Invariant Aggregation
 
@@ -220,15 +224,20 @@ $$w_n = \alpha_n \cdot \mathcal{T}_n$$
 These weights satisfy $\sum_n w_n \leq 1$ and represent how much each sample
 contributes to the final pixel value.
 
-### 6.4 Rendered Outputs
+### 6.4 Rendered Outputs (Denominator Gate Fix)
 
 **Rendered occupancy mask** (analogous to the visual hull projection in the paper):
 
 $$\hat{M}(u,w) = \sum_{n=1}^{N} w_n \in [0, 1]$$
 
 **Rendered temperature** (expected temperature under the weight distribution):
+To compute the expected temperature, we divide by the accumulated opacity. However, on completely empty background rays, both numerator and denominator approach zero, causing severe numeric instability (purple grid artifacts).
 
-$$\hat{T}(u,w) = \frac{\displaystyle\sum_{n=1}^{N} w_n \cdot T(\mathbf{x}_n)}{\displaystyle\sum_{n=1}^{N} w_n + \epsilon}$$
+We solve this using an opacity gate $H(\hat{M}(u,w) > 0.05)$:
+
+$$\hat{T}(u,w) = \left( \frac{\displaystyle\sum_{n=1}^{N} w_n \cdot T(\mathbf{x}_n)}{\hat{M}(u,w) + \epsilon} \right) \cdot H(\hat{M}(u,w) > 0.05)$$
+
+*(Decision Note: By gating the temperature output, we force empty background rays to exactly 0.0, completely removing numerical instability from the thermal loss.)*
 
 The transmittance formulation directly solves the **z-axis inflation problem**
 of the baseline voxel model: a ray that encounters occupied voxels early along
@@ -240,11 +249,11 @@ getting the 2D projection wrong.
 
 ## 7. Loss Function
 
-The total loss has three terms:
+The total loss has four terms:
 
-$$\mathcal{L} = \lambda_{\text{dice}}\,\mathcal{L}_{\text{dice}} + \lambda_{\text{thermal}}\,\mathcal{L}_{\text{thermal}} + \lambda_{\text{TV}}\,\mathcal{L}_{\text{TV}}$$
+$$\mathcal{L} = \lambda_{\text{dice}}\,\mathcal{L}_{\text{dice}} + \lambda_{\text{bg}}\,\mathcal{L}_{\text{bg}} + \lambda_{\text{thermal}}\,\mathcal{L}_{\text{thermal}} + \lambda_{\text{TV}}\,\mathcal{L}_{\text{TV}}$$
 
-### 7.1 Dice Loss (Geometry)
+### 7.1 Dice Loss (Foreground Geometry)
 
 The Sørensen–Dice coefficient between rendered mask $\hat{M}_v$ and GT mask
 $M_v$, averaged over all $V$ views:
@@ -255,19 +264,28 @@ This is numerically more stable than cross-entropy for unbalanced binary
 images where background pixels dominate (as is the case here — the breast
 region is a fraction of the full image).
 
-### 7.2 Thermal MSE Loss (Temperature)
+### 7.2 Background Ray Loss (Background Geometry Constraint)
+
+The Dice Loss provides zero gradient outside the Ground Truth (GT) silhouette, allowing the network to hallucinate opacity in the background. We apply an explicit $L_2$ penalty to any accumulated opacity on rays where the GT mask is exactly 0:
+
+$$\mathcal{L}_{\text{bg}} = \frac{1}{V} \sum_{v=1}^{V} \frac{1}{|\Omega_{\text{bg},v}|} \sum_{(u,w) \in \Omega_{\text{bg},v}} \left(\hat{M}_v(u,w)\right)^2$$
+
+where $\Omega_{\text{bg},v} = \{(u,w) : M_v(u,w) < 0.5\}$.
+
+*(Decision Note: This mathematically forces the network to sweep the background completely clean, eliminating white background residuals and perfectly matching the visual hull constraint without hard-masking.)*
+
+### 7.3 Thermal MSE Loss (Temperature with Epoch Gating)
 
 Mean squared error between rendered temperature $\hat{T}_v$ and normalised
 TIFF $\tilde{I}_v$, computed **only over foreground pixels** defined by $M_v$:
 
-$$\mathcal{L}_{\text{thermal}} = \frac{1}{V} \sum_{v=1}^{V} \frac{1}{|\Omega_v|} \sum_{(u,w) \in \Omega_v} \left(\hat{T}_v(u,w) - \tilde{I}_v(u,w)\right)^2$$
+$$\mathcal{L}_{\text{thermal}} = \frac{1}{V} \sum_{v=1}^{V} \frac{1}{|\Omega_{\text{fg},v}|} \sum_{(u,w) \in \Omega_{\text{fg},v}} \left(\hat{T}_v(u,w) - \tilde{I}_v(u,w)\right)^2$$
 
-where $\Omega_v = \{(u,w) : M_v(u,w) = 1\}$ is the foreground pixel set for view $v$.
+where $\Omega_{\text{fg},v} = \{(u,w) : M_v(u,w) \geq 0.5\}$ is the foreground pixel set for view $v$.
 
-Restricting to foreground prevents the background (which has no thermal meaning
-in a radiometric TIFF) from dominating the gradient signal.
+*(Decision Note: **Epoch Gating** is strictly enforced. $\lambda_{\text{thermal}}$ is set to $0.0$ for the first 50 epochs. At epoch 0, geometry is random "fog", and thermal loss produces poisoned gradients by forcing the network to paint temperatures onto empty space. Gating allows the Dice loss to build a solid 3D surface first. At Epoch 51, $\lambda_{\text{thermal}}$ is ramped to $0.01$, painting temperatures onto physically accurate geometry.)*
 
-### 7.3 Total Variation Regularisation (Smoothness)
+### 7.4 Total Variation Regularisation (Smoothness)
 
 Applied to the 3D density grid $\sigma$ evaluated on the marching cubes grid
 to suppress high-frequency voxel noise:
@@ -282,7 +300,8 @@ the starfish artifacts that arise when the NeRF overfits to a small dataset.
 ## 8. Training Objective Summary
 
 $$\min_{\phi,\,\psi} \;\; \frac{1}{V}\sum_{v=1}^{V} \Bigg[
-\underbrace{\lambda_{\text{dice}}\,\mathcal{L}_{\text{dice}}(\hat{M}_v, M_v)}_{\text{shape consistency}} +
+\underbrace{\lambda_{\text{dice}}\,\mathcal{L}_{\text{dice}}(\hat{M}_v, M_v)}_{\text{foreground shape}} +
+\underbrace{\lambda_{\text{bg}}\,\mathcal{L}_{\text{bg}}(\hat{M}_v, M_v)}_{\text{background shape}} +
 \underbrace{\lambda_{\text{thermal}}\,\mathcal{L}_{\text{thermal}}(\hat{T}_v, \tilde{I}_v)}_{\text{thermal fidelity}} +
 \underbrace{\lambda_{\text{TV}}\,\mathcal{L}_{\text{TV}}(\sigma)}_{\text{smoothness}}
 \Bigg]$$
