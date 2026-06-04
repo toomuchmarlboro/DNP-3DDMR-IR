@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Auto-converted from thermamnerf_v1.6.ipynb
-Usage: run under tmux or background: `python ThermMAM-NeRF/thermamnerf_v1.6.py`
+Auto-converted from thermamnerf_v1.6.ipynb (Updated to v1.7)
+Usage: run under tmux or background: `python ThermMAM-NeRF/thermamnerf_v1.7.py`
 """
 
 import os
@@ -39,7 +39,7 @@ print(f'Using devices: {DEVICE0}, {DEVICE1}')
 # ── Paths ────────────────────────────────────────────────────────────────────
 TIFF_DIR         = '../data/organized_by_patient'
 UNET_DIR         = '../data/organized_by_patient_unet'
-OUTPUT_DIR       = './thermamnerf_outputs'
+OUTPUT_DIR       = './thermamnerf_outputs1.7'
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # ── Hyperparameters ──────────────────────────────────────────────────────────
@@ -66,8 +66,8 @@ CFG = {
     'n_epochs'        : 250,
     'lr'              : 5e-4,
     'lambda_dice'     : 1.0,
-    'lambda_bg'       : 1.0,
-    'lambda_thermal'  : 0.0,
+    'lambda_bg'       : 5.0,    # INCREASED from 1.0 to aggressively penalize empty space floaters
+    'lambda_thermal'  : 0.0,    # ZEROED to focus 100% MLP capacity on shape
     'lambda_tv'       : 0.005,
     'n_rays'          : 4096,
 
@@ -590,17 +590,17 @@ for epoch in tqdm(range(START_EPOCH, CFG['n_epochs'] + 1), desc='Training Epochs
     encoder.train()
     mlp.train()
     mlp_1.train()
+    
     alpha = get_alpha(epoch, CFG['freq_warmup_epochs'], CFG['pos_enc_L'])
     cfg_step = dict(CFG)
-    cfg_step['lambda_tv'] = CFG['lambda_tv'] * max(0.1, math.exp(-0.015 * epoch))
-    if epoch <= 50:
-        cfg_step['lambda_thermal'] = 0.0
-    else:
-        cfg_step['lambda_thermal'] = 0.01
-        
-    # --- THIS HAS BEEN CORRECTED ---
+    
+    # 1. STOP TV LOSS FROM DROPPING TOO LOW (Decay clipped at 0.4x instead of 0.1x)
+    cfg_step['lambda_tv'] = CFG['lambda_tv'] * max(0.4, math.exp(-0.015 * epoch))
+    
+    # 2. TURN OFF THERMAL LOSS COMPLETELY
+    cfg_step['lambda_thermal'] = 0.0
+    
     cfg_step['density_scale'] = 10.0
-    # -------------------------------
     
     epoch_loss = []
     for batch in tqdm(train_dl, desc=f'Epoch {epoch}/{CFG["n_epochs"]}', leave=False):
@@ -638,7 +638,7 @@ for epoch in tqdm(range(START_EPOCH, CFG['n_epochs'] + 1), desc='Training Epochs
               f'Val Dice Loss: {vd:.4f} (Dice: {1-vd:.4f}) | ' \
               f'Val Thermal MSE: {vt:.4f} | ' \
               f'α: {alpha:.1f} | ' \
-              f'DENSITY_SCALE_TEST: {cfg_step["density_scale"]:.1f} | ' \
+              f'ds: {cfg_step["density_scale"]:.1f} | ' \
               f'λ_tv: {cfg_step["lambda_tv"]:.4f}')
 
 
@@ -735,6 +735,36 @@ def export_ply(verts, faces, colors_rgb, filepath, temperatures=None):
             f.write(f'3 {face[0]} {face[1]} {face[2]}\n')
     print(f'Saved PLY: {filepath}')
 
+
+# ── Training Curves ──────────────────────────────────────────────────────────
+try:
+    fig, axes = plt.subplots(1, 3, figsize=(15, 4))
+    
+    # Train Loss
+    axes[0].plot(history['train_loss'], color='blue', label='Train Loss')
+    axes[0].set_title('Train Loss (Total)')
+    axes[0].set_xlabel('Epoch')
+    axes[0].grid(True)
+    
+    # Val Dice Loss
+    axes[1].plot(history['val_dice'], color='green', marker='o')
+    axes[1].set_title('Val Dice Loss')
+    axes[1].set_xlabel('Evaluation Step')
+    axes[1].grid(True)
+    
+    # Val Thermal MSE
+    axes[2].plot(history['val_thermal'], color='red', marker='o')
+    axes[2].set_title('Val Thermal MSE')
+    axes[2].set_xlabel('Evaluation Step')
+    axes[2].grid(True)
+    
+    plt.suptitle('TherMAM-NeRF v1.7 Training Progress')
+    plt.tight_layout()
+    plt.savefig(os.path.join(OUTPUT_DIR, 'training_curves.png'), dpi=120)
+    plt.close(fig)
+    print(f"Saved training curves to {os.path.join(OUTPUT_DIR, 'training_curves.png')}")
+except Exception as e:
+    print('Training curves plot skipped:', e)
 
 if __name__ == '__main__':
     print('Script executed directly. Training has already run in top-level scope.')
