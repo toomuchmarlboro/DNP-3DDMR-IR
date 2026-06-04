@@ -66,7 +66,7 @@ SCRIPT_DIR       = Path(__file__).resolve().parent
 REPO_ROOT        = SCRIPT_DIR.parent
 TIFF_DIR         = str(REPO_ROOT / 'data' / 'organized_by_patient')
 UNET_DIR         = str(REPO_ROOT / 'data' / 'organized_by_patient_unet')
-OUTPUT_DIR       = str(SCRIPT_DIR / 'thermamnerf_outputs1.8')
+OUTPUT_DIR       = str(SCRIPT_DIR / 'thermamnerf_outputs1.9')
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # ── Hyperparameters ──────────────────────────────────────────────────────────
@@ -82,15 +82,15 @@ CFG = {
     'mlp_hidden'      : 192,
     'mlp_layers'      : 4,
 
-    'n_samples'       : 96,
+    'n_samples'       : 128,
     'near'            : 0.0,
     'far'             : 1.0,
     'density_scale'   : 10.0,
 
     'freq_warmup_epochs': 50,
 
-    'batch_size'      : 2,
-    'n_epochs'        : 250,
+    'batch_size'      : 1,
+    'n_epochs'        : 300,
     'lr'              : 5e-4,
     'lambda_dice'     : 1.0,
     'lambda_bg'       : 5.0,    # INCREASED from 1.0 to aggressively penalize empty space floaters
@@ -597,7 +597,7 @@ def run_one_batch(batch, encoder, mlp, cfg, alpha, device,
         rendered_temps.append(torch.stack(rt_list))
     gt_masks_sampled = torch.stack(gt_masks_sampled, dim=1)
     gt_tiffs_sampled = torch.stack(gt_tiffs_sampled, dim=1)
-    R_tv = 16
+    R_tv = 32
     linspace_tv = torch.linspace(near, far, R_tv, device=device)
     zz, yy, xx = torch.meshgrid(linspace_tv, linspace_tv, linspace_tv, indexing='ij')
     pts_tv  = torch.stack([xx, yy, zz], dim=-1).reshape(1, -1, 3).expand(B, -1, -1)
