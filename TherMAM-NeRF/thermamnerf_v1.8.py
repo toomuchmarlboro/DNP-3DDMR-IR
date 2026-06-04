@@ -2,6 +2,7 @@
 """
 Auto-converted from thermamnerf_v1.6.ipynb (Updated to v1.8)
 Usage: run under tmux or background: `python ThermMAM-NeRF/thermamnerf_v1.8.py`
+DDP usage: `torchrun --nproc_per_node=2 ThermMAM-NeRF/thermamnerf_v1.8.py`
 """
 
 import os
@@ -14,9 +15,12 @@ import tifffile
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import torch.distributed as dist
 from torch.cuda.amp import autocast, GradScaler
+from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.checkpoint import checkpoint
 from torch.utils.data import Dataset, DataLoader
+from torch.utils.data.distributed import DistributedSampler
 from torchvision import transforms
 from PIL import Image
 from skimage.measure import marching_cubes
@@ -32,11 +36,30 @@ from tqdm import tqdm
 import warnings
 warnings.filterwarnings('ignore')
 
-# ── Dual-GPU Setup ───────────────────────────────────────────────────────────
-DEVICE0 = torch.device('cuda:0')
-DEVICE1 = torch.device('cuda:1')
-DEVICE  = DEVICE0
-print(f'Using devices: {DEVICE0}, {DEVICE1}')
+def setup_distributed():
+    if 'RANK' in os.environ and 'WORLD_SIZE' in os.environ:
+        rank = int(os.environ['RANK'])
+        world_size = int(os.environ['WORLD_SIZE'])
+        local_rank = int(os.environ.get('LOCAL_RANK', 0))
+        backend = 'nccl' if torch.cuda.is_available() else 'gloo'
+        dist.init_process_group(backend=backend, init_method='env://')
+        if torch.cuda.is_available():
+            torch.cuda.set_device(local_rank)
+    else:
+        rank = 0
+        world_size = 1
+        local_rank = 0
+    if torch.cuda.is_available():
+        device = torch.device(f'cuda:{local_rank}')
+    else:
+        device = torch.device('cpu')
+    return rank, world_size, local_rank, device
+
+
+RANK, WORLD_SIZE, LOCAL_RANK, DEVICE = setup_distributed()
+IS_MAIN = (RANK == 0)
+if IS_MAIN:
+    print(f'Using device {DEVICE} | world_size={WORLD_SIZE} | rank={RANK}')
 
 # ── Paths ────────────────────────────────────────────────────────────────────
 TIFF_DIR         = '../data/organized_by_patient'
@@ -79,6 +102,8 @@ CFG = {
     'use_amp'         : True,
     'use_grad_checkpoint': True,
 }
+if not torch.cuda.is_available():
+    CFG['use_amp'] = False
 print('Config loaded.')
 
 ## -------------------- Data loading utilities --------------------------------
@@ -211,13 +236,32 @@ print(f'Train: {len(train_patients)} | Val: {len(val_patients)}')
 train_ds = BreastThermDataset(train_patients, CFG)
 val_ds   = BreastThermDataset(val_patients,   CFG)
 
-train_dl = DataLoader(train_ds, batch_size=CFG['batch_size'], shuffle=True,
-                      num_workers=0, pin_memory=False)
-val_dl   = DataLoader(val_ds,   batch_size=1, shuffle=False,
-                      num_workers=0, pin_memory=False)
+train_sampler = None
+if WORLD_SIZE > 1:
+    train_sampler = DistributedSampler(
+        train_ds,
+        num_replicas=WORLD_SIZE,
+        rank=RANK,
+        shuffle=True,
+        drop_last=False,
+    )
+
+train_dl = DataLoader(
+    train_ds,
+    batch_size=CFG['batch_size'],
+    shuffle=(train_sampler is None),
+    sampler=train_sampler,
+    num_workers=0,
+    pin_memory=False,
+)
+
+val_dl = None
+if IS_MAIN:
+    val_dl = DataLoader(val_ds, batch_size=1, shuffle=False,
+                        num_workers=0, pin_memory=False)
 
 # Quick sanity-check (will save figures to OUTPUT_DIR when running headless)
-if len(train_ds) > 0:
+if IS_MAIN and len(train_ds) > 0:
     sample = train_ds[0]
     print('tiffs_norm:', sample['tiffs_norm'].shape,
           '| masks:', sample['masks'].shape,
@@ -342,18 +386,30 @@ L        = CFG['pos_enc_L']
 pos_dim  = 3 * 2 * L
 feat_dim = CFG['feat_channels'] * 2
 
-encoder  = SiameseEncoder(out_channels=CFG['feat_channels']).to(DEVICE0)
+encoder  = SiameseEncoder(out_channels=CFG['feat_channels']).to(DEVICE)
 mlp      = ThermamNeRFMLP(pos_enc_dim=pos_dim,
                            feat_dim=feat_dim,
                            hidden=CFG['mlp_hidden'],
-                           n_layers=CFG['mlp_layers']).to(DEVICE0)
-mlp_1 = copy.deepcopy(mlp).to(DEVICE1)
+                           n_layers=CFG['mlp_layers']).to(DEVICE)
 
-n_params = sum(p.numel() for p in list(encoder.parameters()) + list(mlp.parameters()))
-print(f'Total parameters: {n_params:,}')
-print(f'  encoder → {DEVICE0}')
-print(f'  mlp     → {DEVICE0} (canonical)')
-print(f'  mlp_1   → {DEVICE1} (replica)')
+if WORLD_SIZE > 1:
+    if torch.cuda.is_available():
+        encoder = DDP(encoder, device_ids=[LOCAL_RANK], output_device=LOCAL_RANK)
+        mlp = DDP(mlp, device_ids=[LOCAL_RANK], output_device=LOCAL_RANK)
+    else:
+        encoder = DDP(encoder)
+        mlp = DDP(mlp)
+
+encoder_base = encoder.module if isinstance(encoder, DDP) else encoder
+mlp_base = mlp.module if isinstance(mlp, DDP) else mlp
+
+n_params = sum(p.numel() for p in list(encoder_base.parameters()) + list(mlp_base.parameters()))
+if IS_MAIN:
+    print(f'Total parameters: {n_params:,}')
+    print(f'  encoder -> {DEVICE}')
+    print(f'  mlp     -> {DEVICE}')
+    if WORLD_SIZE > 1:
+        print('  wrapped with DistributedDataParallel')
 
 
 def get_rays(H: int, W: int, angle_deg: float, device) -> tuple:
@@ -463,22 +519,6 @@ def compute_loss(rendered_masks, rendered_temps,
     return {'total': total, 'dice': loss_dice, 'thermal': loss_thermal, 'tv': loss_tv, 'bg': loss_bg}
 
 
-def sync_grads_to_canonical(mlp, mlp_1, device0):
-    for p0, p1 in zip(mlp.parameters(), mlp_1.parameters()):
-        if p1.grad is not None:
-            g1 = p1.grad.to(device0)
-            if p0.grad is not None:
-                p0.grad.add_(g1)
-            else:
-                p0.grad = g1.clone()
-
-
-def sync_weights_to_replica(mlp, mlp_1, device1):
-    with torch.no_grad():
-        for p0, p1 in zip(mlp.parameters(), mlp_1.parameters()):
-            p1.copy_(p0.to(device1))
-
-
 def background_ray_loss(rendered_masks: list, gt_masks: torch.Tensor) -> torch.Tensor:
     loss = torch.tensor(0.0, device=gt_masks.device)
     V = gt_masks.shape[1]
@@ -497,61 +537,45 @@ def mlp_forward(model, pe, feat, use_grad_checkpoint=False):
     return model(pe, feat)
 
 
-def run_one_batch(batch, encoder, mlp, mlp_1, cfg, alpha, device0, device1,
+def run_one_batch(batch, encoder, mlp, cfg, alpha, device,
                   use_amp=False, use_grad_checkpoint=False):
-    tiffs_norm = batch['tiffs_norm'].to(device0)
-    masks      = batch['masks'].to(device0)
+    tiffs_norm = batch['tiffs_norm'].to(device)
+    masks      = batch['masks'].to(device)
     B, V, H, W = masks.shape
-    view_angles_rad   = torch.tensor([math.radians(a) for a in cfg['view_angles_deg']], device=device0)
-    view_angles_rad_1 = view_angles_rad.to(device1)
+    view_angles_rad   = torch.tensor([math.radians(a) for a in cfg['view_angles_deg']], device=device)
     feat_maps = []
     with autocast(enabled=use_amp):
         for v in range(V):
             fm = encoder(tiffs_norm[:, v], masks[:, v])
             feat_maps.append(fm)
     feat_maps   = torch.stack(feat_maps, dim=1)
-    feat_maps_1 = feat_maps.to(device1)
     n_s      = cfg['n_samples']
     near     = cfg['near']
     far      = cfg['far']
     N_rays   = cfg.get('n_rays', 4096)
-    half     = N_rays // 2
-    t_vals   = torch.linspace(near, far, n_s, device=device0)
+    t_vals   = torch.linspace(near, far, n_s, device=device)
     noise    = torch.rand_like(t_vals) * (far - near) / n_s
     t_vals   = t_vals + noise
-    deltas   = torch.cat([t_vals[1:] - t_vals[:-1], torch.tensor([1e-3], device=device0)])
-    t_vals_1 = t_vals.to(device1)
-    deltas_1 = deltas.to(device1)
+    deltas   = torch.cat([t_vals[1:] - t_vals[:-1], torch.tensor([1e-3], device=device)])
     rendered_masks, rendered_temps = [], []
     gt_masks_sampled, gt_tiffs_sampled = [], []
     for v in range(V):
         angle  = cfg['view_angles_deg'][v]
-        rays_o, rays_d = get_rays(H, W, angle, device0)
-        ray_indices = torch.randperm(H * W, device=device0)[:N_rays]
+        rays_o, rays_d = get_rays(H, W, angle, device)
+        ray_indices = torch.randperm(H * W, device=device)[:N_rays]
         rays_o = rays_o[ray_indices]
         rays_d = rays_d[ray_indices]
         gt_m = masks[:, v].reshape(B, H * W)[:, ray_indices]
         gt_t = tiffs_norm[:, v].reshape(B, H * W)[:, ray_indices]
         gt_masks_sampled.append(gt_m)
         gt_tiffs_sampled.append(gt_t)
-        ro_0, rd_0 = rays_o[:half], rays_d[:half]
-        ro_1, rd_1 = rays_o[half:].to(device1), rays_d[half:].to(device1)
-        pts_0  = ro_0.unsqueeze(1) + t_vals.view(1, -1, 1) * rd_0.unsqueeze(1)
-        pts_0  = pts_0.unsqueeze(0).expand(B, -1, -1, -1)
-        pf_0   = pts_0.reshape(B, -1, 3)
+        pts    = rays_o.unsqueeze(1) + t_vals.view(1, -1, 1) * rays_d.unsqueeze(1)
+        pts    = pts.unsqueeze(0).expand(B, -1, -1, -1)
+        pf     = pts.reshape(B, -1, 3)
         with autocast(enabled=use_amp):
-            pe_0   = positional_encoding(pf_0, L=cfg['pos_enc_L'], alpha=alpha)
-            feat_0 = project_and_sample(pf_0, feat_maps, view_angles_rad)
-            sig_0, tp_0 = mlp_forward(mlp, pe_0, feat_0, use_grad_checkpoint=use_grad_checkpoint)
-        pts_1  = ro_1.unsqueeze(1) + t_vals_1.view(1, -1, 1) * rd_1.unsqueeze(1)
-        pts_1  = pts_1.unsqueeze(0).expand(B, -1, -1, -1)
-        pf_1   = pts_1.reshape(B, -1, 3)
-        with autocast(enabled=use_amp):
-            pe_1   = positional_encoding(pf_1, L=cfg['pos_enc_L'], alpha=alpha)
-            feat_1 = project_and_sample(pf_1, feat_maps_1, view_angles_rad_1)
-            sig_1, tp_1 = mlp_forward(mlp_1, pe_1, feat_1, use_grad_checkpoint=use_grad_checkpoint)
-        sigma  = torch.cat([sig_0, sig_1.to(device0)], dim=1)
-        T_pred = torch.cat([tp_0,  tp_1.to(device0)], dim=1)
+            pe      = positional_encoding(pf, L=cfg['pos_enc_L'], alpha=alpha)
+            feat    = project_and_sample(pf, feat_maps, view_angles_rad)
+            sigma, T_pred = mlp_forward(mlp, pe, feat, use_grad_checkpoint=use_grad_checkpoint)
         sigma  = sigma.squeeze(-1).reshape(B, N_rays, n_s)
         T_pred = T_pred.squeeze(-1).reshape(B, N_rays, n_s)
         rm_list, rt_list = [], []
@@ -565,7 +589,7 @@ def run_one_batch(batch, encoder, mlp, mlp_1, cfg, alpha, device0, device1,
     gt_masks_sampled = torch.stack(gt_masks_sampled, dim=1)
     gt_tiffs_sampled = torch.stack(gt_tiffs_sampled, dim=1)
     R_tv = 16
-    linspace_tv = torch.linspace(near, far, R_tv, device=device0)
+    linspace_tv = torch.linspace(near, far, R_tv, device=device)
     zz, yy, xx = torch.meshgrid(linspace_tv, linspace_tv, linspace_tv, indexing='ij')
     pts_tv  = torch.stack([xx, yy, zz], dim=-1).reshape(1, -1, 3).expand(B, -1, -1)
     with autocast(enabled=use_amp):
@@ -573,7 +597,7 @@ def run_one_batch(batch, encoder, mlp, mlp_1, cfg, alpha, device0, device1,
         feat_tv = project_and_sample(pts_tv, feat_maps, view_angles_rad)
         sigma_tv, _ = mlp_forward(mlp, pe_tv, feat_tv, use_grad_checkpoint=use_grad_checkpoint)
     sigma_tv = sigma_tv.squeeze(-1).reshape(B, R_tv, R_tv, R_tv)
-    loss_tv = torch.tensor(0., device=device0)
+    loss_tv = torch.tensor(0., device=device)
     for b in range(B):
         loss_tv += tv_loss_3d(sigma_tv[b])
     loss_tv /= B
@@ -586,19 +610,20 @@ params    = list(encoder.parameters()) + list(mlp.parameters())
 optimiser = torch.optim.Adam(params, lr=CFG['lr'], betas=(0.9, 0.999))
 scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimiser, T_max=CFG['n_epochs'], eta_min=CFG['lr'] * 0.05)
 scaler    = GradScaler(enabled=CFG.get('use_amp', False))
-print(f"AMP enabled: {CFG.get('use_amp', False)} | Gradient checkpointing: {CFG.get('use_grad_checkpoint', False)}")
+if IS_MAIN:
+    print(f"AMP enabled: {CFG.get('use_amp', False)} | Gradient checkpointing: {CFG.get('use_grad_checkpoint', False)}")
 
 RESUME      = False
 START_EPOCH = 1
 ckpt_path   = os.path.join(OUTPUT_DIR, 'thermamnerf_best.pth')
 if RESUME and os.path.exists(ckpt_path):
-    ckpt = torch.load(ckpt_path, map_location=DEVICE0)
+    ckpt = torch.load(ckpt_path, map_location=DEVICE)
     enc_state = {k.replace('module.', ''): v for k, v in ckpt['encoder'].items()}
     mlp_state = {k.replace('module.', ''): v for k, v in ckpt['mlp'].items()}
-    encoder.load_state_dict(enc_state)
-    mlp.load_state_dict(mlp_state)
-    sync_weights_to_replica(mlp, mlp_1, DEVICE1)
-    print('\n✅ Resumed weights (synced to both GPUs)')
+    encoder_base.load_state_dict(enc_state)
+    mlp_base.load_state_dict(mlp_state)
+    if IS_MAIN:
+        print('\nResumed weights')
     START_EPOCH = 41
     for _ in range(START_EPOCH - 1):
         scheduler.step()
@@ -608,9 +633,11 @@ history       = {'train_loss': [], 'val_dice': [], 'val_thermal': []}
 best_val_dice = float('inf')
 
 for epoch in tqdm(range(START_EPOCH, CFG['n_epochs'] + 1), desc='Training Epochs'):
+    if train_sampler is not None:
+        train_sampler.set_epoch(epoch)
+
     encoder.train()
     mlp.train()
-    mlp_1.train()
     
     alpha = get_alpha(epoch, CFG['freq_warmup_epochs'], CFG['pos_enc_L'])
     cfg_step = dict(CFG)
@@ -626,32 +653,36 @@ for epoch in tqdm(range(START_EPOCH, CFG['n_epochs'] + 1), desc='Training Epochs
     epoch_loss = []
     for batch in tqdm(train_dl, desc=f'Epoch {epoch}/{CFG["n_epochs"]}', leave=False):
         optimiser.zero_grad()
-        mlp_1.zero_grad()
         loss_dict, _, _ = run_one_batch(
-            batch, encoder, mlp, mlp_1, cfg_step, alpha, DEVICE0, DEVICE1,
+            batch, encoder, mlp, cfg_step, alpha, DEVICE,
             use_amp=CFG.get('use_amp', False),
             use_grad_checkpoint=CFG.get('use_grad_checkpoint', False),
         )
         scaler.scale(loss_dict['total']).backward()
-        sync_grads_to_canonical(mlp, mlp_1, DEVICE0)
         scaler.unscale_(optimiser)
         torch.nn.utils.clip_grad_norm_(params, max_norm=1.0)
         scaler.step(optimiser)
         scaler.update()
-        sync_weights_to_replica(mlp, mlp_1, DEVICE1)
         epoch_loss.append(loss_dict['total'].item())
+
+    if WORLD_SIZE > 1:
+        loss_tensor = torch.tensor([np.mean(epoch_loss)], device=DEVICE)
+        dist.all_reduce(loss_tensor, op=dist.ReduceOp.SUM)
+        mean_train = (loss_tensor.item() / WORLD_SIZE)
+    else:
+        mean_train = np.mean(epoch_loss)
+
     scheduler.step()
-    mean_train = np.mean(epoch_loss)
     history['train_loss'].append(mean_train)
-    if epoch % 10 == 0 or epoch == 1:
+
+    if IS_MAIN and (epoch % 10 == 0 or epoch == 1):
         encoder.eval()
         mlp.eval()
-        mlp_1.eval()
         val_dice_losses, val_therm_losses = [], []
         with torch.no_grad():
             for batch in val_dl:
                 ld, _, _ = run_one_batch(
-                    batch, encoder, mlp, mlp_1, cfg_step, alpha, DEVICE0, DEVICE1,
+                    batch, encoder, mlp, cfg_step, alpha, DEVICE,
                     use_amp=CFG.get('use_amp', False),
                     use_grad_checkpoint=False,
                 )
@@ -663,7 +694,7 @@ for epoch in tqdm(range(START_EPOCH, CFG['n_epochs'] + 1), desc='Training Epochs
         history['val_thermal'].append(vt)
         if vd < best_val_dice:
             best_val_dice = vd
-            torch.save({'encoder': encoder.state_dict(), 'mlp': mlp.state_dict()}, os.path.join(OUTPUT_DIR, 'thermamnerf_best.pth'))
+            torch.save({'encoder': encoder_base.state_dict(), 'mlp': mlp_base.state_dict()}, os.path.join(OUTPUT_DIR, 'thermamnerf_best.pth'))
         print(f'Epoch {epoch:03d}/{CFG["n_epochs"]} | ' \
               f'Train Loss: {mean_train:.4f} | ' \
               f'Val Dice Loss: {vd:.4f} (Dice: {1-vd:.4f}) | ' \
@@ -674,45 +705,46 @@ for epoch in tqdm(range(START_EPOCH, CFG['n_epochs'] + 1), desc='Training Epochs
 
 
 # ── Post-training visualisation & export (will not open interactive windows)
-try:
-    ckpt = torch.load(os.path.join(OUTPUT_DIR, 'thermamnerf_best.pth'), map_location=DEVICE)
-    encoder.load_state_dict(ckpt['encoder'])
-    mlp.load_state_dict(ckpt['mlp'])
-    encoder.eval(); mlp.eval()
-    sample      = val_ds[0]
-    tiffs_norm  = sample['tiffs_norm'].to(DEVICE)
-    tiffs_abs   = sample['tiffs_abs'].to(DEVICE)
-    masks       = sample['masks'].to(DEVICE)
-    patient_id  = sample['patient_id']
-    alpha_final = float(CFG['pos_enc_L'])
-    fig, axes = plt.subplots(3, 5, figsize=(18, 10))
-    dice_scores = []
-    for v, vname in enumerate(CFG['view_names']):
-        angle = CFG['view_angles_deg'][v]
-        rm, rt = render_view(encoder, mlp, tiffs_norm, masks, v, CFG, DEVICE, alpha=alpha_final)
-        gt_mask = masks[v].cpu().numpy()
-        gt_temp = tiffs_norm[v].cpu().numpy()
-        pred_m  = rm.cpu().numpy()
-        pred_t  = rt.cpu().numpy()
-        pred_bin = (pred_m > 0.5).astype(np.float32)
-        inter    = (pred_bin * gt_mask).sum()
-        dsc      = 2 * inter / (pred_bin.sum() + gt_mask.sum() + 1e-6)
-        dice_scores.append(dsc)
-        axes[0, v].imshow(gt_mask, cmap='gray')
-        axes[0, v].set_title(f'GT Mask\n{vname} ({angle}°)', fontsize=9)
-        axes[0, v].axis('off')
-        axes[1, v].imshow(pred_m, cmap='gray', vmin=0, vmax=1)
-        axes[1, v].set_title(f'Rendered Mask\nDice={dsc:.3f}', color='green' if dsc > 0.85 else 'red', fontsize=9)
-        axes[1, v].axis('off')
-        axes[2, v].imshow(pred_t, cmap='inferno', vmin=0, vmax=1)
-        axes[2, v].set_title('Rendered Thermal', fontsize=9)
-        axes[2, v].axis('off')
-    plt.suptitle(f'Projection Audit: {patient_id} | Mean Dice: {np.mean(dice_scores):.3f}', fontsize=12)
-    plt.tight_layout()
-    plt.savefig(os.path.join(OUTPUT_DIR, f'audit_{patient_id}.png'), dpi=120)
-    plt.close(fig)
-except Exception as e:
-    print('Projection audit skipped:', e)
+if IS_MAIN:
+    try:
+        ckpt = torch.load(os.path.join(OUTPUT_DIR, 'thermamnerf_best.pth'), map_location=DEVICE)
+        encoder_base.load_state_dict(ckpt['encoder'])
+        mlp_base.load_state_dict(ckpt['mlp'])
+        encoder_base.eval(); mlp_base.eval()
+        sample      = val_ds[0]
+        tiffs_norm  = sample['tiffs_norm'].to(DEVICE)
+        tiffs_abs   = sample['tiffs_abs'].to(DEVICE)
+        masks       = sample['masks'].to(DEVICE)
+        patient_id  = sample['patient_id']
+        alpha_final = float(CFG['pos_enc_L'])
+        fig, axes = plt.subplots(3, 5, figsize=(18, 10))
+        dice_scores = []
+        for v, vname in enumerate(CFG['view_names']):
+            angle = CFG['view_angles_deg'][v]
+            rm, rt = render_view(encoder_base, mlp_base, tiffs_norm, masks, v, CFG, DEVICE, alpha=alpha_final)
+            gt_mask = masks[v].cpu().numpy()
+            gt_temp = tiffs_norm[v].cpu().numpy()
+            pred_m  = rm.cpu().numpy()
+            pred_t  = rt.cpu().numpy()
+            pred_bin = (pred_m > 0.5).astype(np.float32)
+            inter    = (pred_bin * gt_mask).sum()
+            dsc      = 2 * inter / (pred_bin.sum() + gt_mask.sum() + 1e-6)
+            dice_scores.append(dsc)
+            axes[0, v].imshow(gt_mask, cmap='gray')
+            axes[0, v].set_title(f'GT Mask\n{vname} ({angle}°)', fontsize=9)
+            axes[0, v].axis('off')
+            axes[1, v].imshow(pred_m, cmap='gray', vmin=0, vmax=1)
+            axes[1, v].set_title(f'Rendered Mask\nDice={dsc:.3f}', color='green' if dsc > 0.85 else 'red', fontsize=9)
+            axes[1, v].axis('off')
+            axes[2, v].imshow(pred_t, cmap='inferno', vmin=0, vmax=1)
+            axes[2, v].set_title('Rendered Thermal', fontsize=9)
+            axes[2, v].axis('off')
+        plt.suptitle(f'Projection Audit: {patient_id} | Mean Dice: {np.mean(dice_scores):.3f}', fontsize=12)
+        plt.tight_layout()
+        plt.savefig(os.path.join(OUTPUT_DIR, f'audit_{patient_id}.png'), dpi=120)
+        plt.close(fig)
+    except Exception as e:
+        print('Projection audit skipped:', e)
 
 
 def extract_3d_volume(encoder, mlp, tiffs_norm, masks, cfg, device,
@@ -768,34 +800,39 @@ def export_ply(verts, faces, colors_rgb, filepath, temperatures=None):
 
 
 # ── Training Curves ──────────────────────────────────────────────────────────
-try:
-    fig, axes = plt.subplots(1, 3, figsize=(15, 4))
-    
-    # Train Loss
-    axes[0].plot(history['train_loss'], color='blue', label='Train Loss')
-    axes[0].set_title('Train Loss (Total)')
-    axes[0].set_xlabel('Epoch')
-    axes[0].grid(True)
-    
-    # Val Dice Loss
-    axes[1].plot(history['val_dice'], color='green', marker='o')
-    axes[1].set_title('Val Dice Loss')
-    axes[1].set_xlabel('Evaluation Step')
-    axes[1].grid(True)
-    
-    # Val Thermal MSE
-    axes[2].plot(history['val_thermal'], color='red', marker='o')
-    axes[2].set_title('Val Thermal MSE')
-    axes[2].set_xlabel('Evaluation Step')
-    axes[2].grid(True)
-    
-    plt.suptitle('TherMAM-NeRF v1.7 Training Progress')
-    plt.tight_layout()
-    plt.savefig(os.path.join(OUTPUT_DIR, 'training_curves.png'), dpi=120)
-    plt.close(fig)
-    print(f"Saved training curves to {os.path.join(OUTPUT_DIR, 'training_curves.png')}")
-except Exception as e:
-    print('Training curves plot skipped:', e)
+if IS_MAIN:
+    try:
+        fig, axes = plt.subplots(1, 3, figsize=(15, 4))
+
+        # Train Loss
+        axes[0].plot(history['train_loss'], color='blue', label='Train Loss')
+        axes[0].set_title('Train Loss (Total)')
+        axes[0].set_xlabel('Epoch')
+        axes[0].grid(True)
+
+        # Val Dice Loss
+        axes[1].plot(history['val_dice'], color='green', marker='o')
+        axes[1].set_title('Val Dice Loss')
+        axes[1].set_xlabel('Evaluation Step')
+        axes[1].grid(True)
+
+        # Val Thermal MSE
+        axes[2].plot(history['val_thermal'], color='red', marker='o')
+        axes[2].set_title('Val Thermal MSE')
+        axes[2].set_xlabel('Evaluation Step')
+        axes[2].grid(True)
+
+        plt.suptitle('TherMAM-NeRF v1.8 Training Progress')
+        plt.tight_layout()
+        plt.savefig(os.path.join(OUTPUT_DIR, 'training_curves.png'), dpi=120)
+        plt.close(fig)
+        print(f"Saved training curves to {os.path.join(OUTPUT_DIR, 'training_curves.png')}")
+    except Exception as e:
+        print('Training curves plot skipped:', e)
+
+if WORLD_SIZE > 1:
+    dist.barrier()
+    dist.destroy_process_group()
 
 if __name__ == '__main__':
     print('Script executed directly. Training has already run in top-level scope.')
