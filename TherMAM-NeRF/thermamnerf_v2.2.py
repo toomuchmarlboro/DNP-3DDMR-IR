@@ -66,7 +66,7 @@ SCRIPT_DIR       = Path(__file__).resolve().parent
 REPO_ROOT        = SCRIPT_DIR.parent
 TIFF_DIR         = str(REPO_ROOT / 'data' / 'organized_by_patient')
 UNET_DIR         = str(REPO_ROOT / 'data' / 'organized_by_patient_unet')
-OUTPUT_DIR       = str(SCRIPT_DIR / 'thermamnerf_outputs2.1')
+OUTPUT_DIR       = str(SCRIPT_DIR / 'thermamnerf_outputs2.2')
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # ── Hyperparameters ──────────────────────────────────────────────────────────
