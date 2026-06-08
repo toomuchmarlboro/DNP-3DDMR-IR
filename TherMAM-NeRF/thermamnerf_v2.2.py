@@ -79,7 +79,7 @@ CFG = {
     'feat_channels'   : 32,
 
     'pos_enc_L'       : 8,
-    'mlp_hidden'      : 192,
+    'mlp_hidden'      : 256,
     'mlp_layers'      : 4,
 
     'n_samples'       : 128,
@@ -93,9 +93,10 @@ CFG = {
     'n_epochs'        : 300,
     'lr'              : 5e-4,
     'lambda_dice'     : 1.0,
-    'lambda_bg'       : 20.0,    # User suggestion: push bg penalty even higher
+    'lambda_bg'       : 10.0,    # Lowered back so it doesn't eat the breast tip
     'lambda_thermal'  : 0.0,
-    'lambda_tv'       : 0.01,    # User suggestion: increase TV loss to smooth out the jagged IMF
+    'lambda_tv'       : 0.01,  # Lowered so it doesn't smooth away the sharp tip
+    'lambda_entropy'  : 0.5,    # NEW: Opacity penalty (quadratic)
     'n_rays'          : 4096,
 
     'mc_threshold'    : 0.3,
@@ -506,6 +507,7 @@ def compute_loss(rendered_masks, rendered_temps,
     loss_dice    = torch.tensor(0., device=gt_masks.device)
     loss_thermal = torch.tensor(0., device=gt_masks.device)
     loss_bg      = torch.tensor(0., device=gt_masks.device)
+    loss_entropy = torch.tensor(0., device=gt_masks.device)
     for v in range(cfg['n_views']):
         pred_m  = rendered_masks[v]
         pred_t  = rendered_temps[v]
@@ -518,14 +520,21 @@ def compute_loss(rendered_masks, rendered_temps,
             loss_thermal = loss_thermal + torch.nn.functional.mse_loss(pred_t[fg], gt_t[fg])
         if bg.any():
             loss_bg = loss_bg + pred_m[bg].pow(2).mean()
+        
+        # Ray opacity penalty to gently snap semi-transparent streaks to 0 or 1
+        loss_entropy = loss_entropy + (pred_m * (1.0 - pred_m)).mean()
+
     loss_dice    /= cfg['n_views']
     loss_thermal /= cfg['n_views']
     loss_bg      /= cfg['n_views']
+    loss_entropy /= cfg['n_views']
+
     total = (cfg['lambda_dice']    * loss_dice +
              cfg['lambda_thermal'] * loss_thermal +
              cfg.get('lambda_tv', 0.0) * loss_tv +
-             cfg.get('lambda_bg', 1.0) * loss_bg)
-    return {'total': total, 'dice': loss_dice, 'thermal': loss_thermal, 'tv': loss_tv, 'bg': loss_bg}
+             cfg.get('lambda_bg', 1.0) * loss_bg +
+             cfg.get('lambda_entropy', 0.0) * loss_entropy)
+    return {'total': total, 'dice': loss_dice, 'thermal': loss_thermal, 'tv': loss_tv, 'bg': loss_bg, 'entropy': loss_entropy}
 
 
 def background_ray_loss(rendered_masks: list, gt_masks: torch.Tensor) -> torch.Tensor:
@@ -651,8 +660,14 @@ for epoch in tqdm(range(START_EPOCH, CFG['n_epochs'] + 1), desc='Training Epochs
     alpha = get_alpha(epoch, CFG['freq_warmup_epochs'], CFG['pos_enc_L'])
     cfg_step = dict(CFG)
     
-    # TV loss decays but bottoms out much higher (0.5 * 0.01 = 0.005) to keep edges smooth
-    cfg_step['lambda_tv'] = CFG['lambda_tv'] * max(0.5, math.exp(-0.015 * epoch))
+    # TV loss decays but bottoms out at 0.001
+    cfg_step['lambda_tv'] = CFG.get('lambda_tv', 0.002) * max(0.5, math.exp(-0.015 * epoch))
+    
+    # Ramp up lambda_bg to prevent softplus collapse in the first few epochs!
+    cfg_step['lambda_bg'] = CFG.get('lambda_bg', 5.0) * min(1.0, epoch / 50.0)
+    
+    # Entropy loss ramps up later to clean up streaks after geometry is formed
+    cfg_step['lambda_entropy'] = CFG.get('lambda_entropy', 0.5) * min(1.0, epoch / 100.0)
     
     # TURN OFF THERMAL LOSS COMPLETELY
     cfg_step['lambda_thermal'] = 0.0

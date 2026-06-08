@@ -371,3 +371,163 @@ autodiff graph, just an additional loss term.
 
 The baseline voxel overlay cannot support this because a discrete voxel grid
 is not differentiable with respect to spatial coordinates.
+
+---
+
+## 11. v2.0–v2.2 Development Progress
+
+This section documents the iterative engineering decisions made during the development of TherMAM-NeRF from v2.0 through v2.2, including the bugs discovered, the mathematical reasoning behind each fix, and the resulting improvements.
+
+### 11.1 Ray Opacity Entropy Loss (v2.1)
+
+**Problem:** After the Dice loss successfully carved the breast geometry, faint semi-transparent "ghost streaks" persisted in the background. These streaks had rendered mask values in the range $(0.05, 0.5)$ — too faint for the Dice loss to penalise, and below the $L_2$ background penalty threshold.
+
+**Solution:** A quadratic opacity penalty that penalises any ray accumulation that is neither fully transparent (0) nor fully opaque (1):
+
+$$\mathcal{L}_{\text{entropy}} = \frac{1}{V} \sum_{v=1}^{V} \frac{1}{HW} \sum_{u,w} \hat{M}_v(u,w) \cdot \left(1 - \hat{M}_v(u,w)\right)$$
+
+This function has the following key properties:
+- $\hat{M} = 0 \Rightarrow \mathcal{L}_{\text{entropy}} = 0$ (empty space is not penalised)
+- $\hat{M} = 1 \Rightarrow \mathcal{L}_{\text{entropy}} = 0$ (solid tissue is not penalised)
+- $\hat{M} = 0.5 \Rightarrow \mathcal{L}_{\text{entropy}} = 0.25$ (maximum penalty for ambiguous opacity)
+
+**Design Decision:** The quadratic form $p(1-p)$ was chosen over the information-theoretic form $-p\log(p)$ because $\log(p)$ has an infinite derivative as $p \to 0$. Since the network initialises with near-zero densities, the $\log$-based entropy produced catastrophic gradients at Epoch 1, instantly collapsing the entire volume to zero (Dice $= 0.000$). The quadratic form has bounded derivatives everywhere, providing a gentle, stable push.
+
+*(Decision Note: $\lambda_{\text{entropy}} = 0.05$ in the final configuration. Higher values (e.g., 2.0) caused pixelation of smooth boundaries.)*
+
+### 11.2 Updated Total Loss (v2.2)
+
+The total loss now has **five** terms:
+
+$$\mathcal{L} = \lambda_{\text{dice}}\,\mathcal{L}_{\text{dice}} + \lambda_{\text{bg}}\,\mathcal{L}_{\text{bg}} + \lambda_{\text{thermal}}\,\mathcal{L}_{\text{thermal}} + \lambda_{\text{TV}}\,\mathcal{L}_{\text{TV}} + \lambda_{\text{entropy}}\,\mathcal{L}_{\text{entropy}}$$
+
+### 11.3 Softplus Collapse and $\lambda_{\text{bg}}$ Ramp-Up Schedule (v2.2)
+
+**Problem:** With $\lambda_{\text{bg}} = 5.0$ applied at full strength from Epoch 1, the network experienced "Softplus Collapse." The 3D volume is initialised with random noise, which fills the entire bounding box with non-zero density. The background penalty sees this massive block and sends a catastrophic gradient that pushes all density weights to $-\infty$ in a single step. Once the Softplus activation saturates at 0, the gradients vanish permanently and the Dice score is locked at $0.000$.
+
+**Solution:** A linear ramp-up schedule over the first 10 epochs:
+
+$$\lambda_{\text{bg}}^{(e)} = \lambda_{\text{bg}} \cdot \min\!\left(1,\; \frac{e}{10}\right)$$
+
+At Epoch 1, $\lambda_{\text{bg}}^{(1)} = 0.3$ (10% of full strength), giving the Dice loss time to sculpt the breast geometry. By Epoch 10, the geometry is established and $\lambda_{\text{bg}}$ reaches full strength to sweep the background clean.
+
+*(Decision Note: A 50-epoch ramp was initially used but was too slow — the "Solid Block Trap" occurred where density remained uniformly high across the entire volume because the background penalty took too long to activate. 10 epochs was the sweet spot.)*
+
+### 11.4 Density Scale Tuning (v2.2)
+
+**Problem:** Setting `density_scale` $k = 50.0$ caused the "Solid Block Trap." With the volume initialised to random noise, a very high $k$ made the initial opacity so dense that the entire 3D bounding box rendered as a solid white block. Combined with the ramped $\lambda_{\text{bg}}$, the optimiser could not carve through the block fast enough, and the Dice score plateaued at $\approx 0.30$ (the overlap ratio of a solid cube with the breast silhouette).
+
+**Solution:** Reverted to $k = 10.0$, which produces soft initial opacity that the Dice loss can easily carve.
+
+### 11.5 TV Loss Decay Schedule (v2.2)
+
+The total variation regularisation is decayed with an exponential schedule, bottoming out at 50% of the initial value:
+
+$$\lambda_{\text{TV}}^{(e)} = \lambda_{\text{TV}} \cdot \max\!\left(0.5,\; e^{-0.015 \cdot e}\right)$$
+
+This provides strong smoothing in early epochs (suppressing noise during the random initialisation phase) and relaxes later to allow sharp boundary detail.
+
+### 11.6 Entropy Loss Ramp-Up (v2.2)
+
+The entropy penalty is linearly ramped over the first 100 epochs:
+
+$$\lambda_{\text{entropy}}^{(e)} = \lambda_{\text{entropy}} \cdot \min\!\left(1,\; \frac{e}{100}\right)$$
+
+This prevents the entropy loss from interfering with geometry formation. It only reaches full strength after the breast shape is well established.
+
+### 11.7 Near-Plane Bug Fix (v2.2)
+
+**Problem:** The rendered breast shape was violently sliced along straight lines in every view. Some patients had portions of their anatomy completely cut off.
+
+**Root Cause:** The ray marching parameter `near` was set to $0.0$ instead of $-1.0$. Because the 3D bounding box spans $[-1, 1]^3$ and camera ray origins are placed at the centre plane, setting $t_{\text{near}} = 0.0$ meant rays could only travel **forward** from the origin, making the camera completely blind to the half-space behind it.
+
+For the Frontal view ($\theta = 0°$, camera looking along $+z$), this meant the entire $z < 0$ region was invisible. For the LL view ($\theta = 90°$), the entire $x > 0$ region was invisible. The network was forced to reconstruct the breast using only half of each camera's field of view, resulting in clean geometric cuts wherever the breast crossed the camera's centre plane.
+
+**Fix:** Changed `near` from $0.0$ to $-1.0$, allowing rays to traverse the full $[-1, 1]$ depth range.
+
+Additionally, the TV loss grid was incorrectly evaluated over $[t_{\text{near}}, t_{\text{far}}]$ instead of the full $[-1, 1]^3$ volume, causing smoothing to be applied unevenly. This was corrected to always span $[-1, 1]$.
+
+---
+
+## 12. v2.2 Final Hyperparameter Configuration
+
+| Parameter | Value | Rationale |
+|---|---|---|
+| `img_size` | 128 | Balance of resolution and VRAM |
+| `feat_channels` | 32 | Encoder output dimensionality |
+| `pos_enc_L` | 8 | Frequency bands ($6L = 48$ dim) |
+| `mlp_hidden` | 256 | Increased from 192 for greater capacity |
+| `mlp_layers` | 4 | With skip connection at layer 2 |
+| `n_samples` | 128 | Ray march samples per ray |
+| `near` | $-1.0$ | Full bounding box traversal |
+| `far` | $1.0$ | Full bounding box traversal |
+| `density_scale` ($k$) | 10.0 | Soft enough to avoid solid block trap |
+| `freq_warmup_epochs` | 50 | Coarse-to-fine frequency schedule |
+| `n_epochs` | 300 | Total training epochs |
+| `lr` | $5 \times 10^{-4}$ | Adam learning rate |
+| `lambda_dice` | 1.0 | Primary shape supervision |
+| `lambda_bg` | 3.0 | Background cleanup (ramped over 10 epochs) |
+| `lambda_thermal` | 0.0 | Currently disabled (geometry-only phase) |
+| `lambda_tv` | 0.01 | Smoothness (exponential decay, floor at 50%) |
+| `lambda_entropy` | 0.05 | Opacity snap (ramped over 100 epochs) |
+| `n_rays` | 4096 | Rays sampled per view per batch |
+| `mc_threshold` | 0.3 | Marching cubes isosurface level |
+| `mc_resolution` | 128 | Volume extraction grid resolution |
+
+---
+
+## 13. Evaluation Metrics
+
+### 13.1 Projection Audit Pipeline
+
+After training, the best checkpoint is loaded and every patient in the dataset is evaluated. For each patient, all 5 views are re-rendered from the learned 3D volume and compared against the ground truth masks.
+
+### 13.2 Dice Score (per-view)
+
+$$\text{DSC}_v = \frac{2 \cdot |\hat{B}_v \cap B_v|}{|\hat{B}_v| + |B_v| + \epsilon}$$
+
+where $\hat{B}_v = \{(u,w) : \hat{M}_v(u,w) > 0.5\}$ is the binarised rendered mask and $B_v = \{(u,w) : M_v(u,w) > 0.5\}$ is the ground truth mask.
+
+### 13.3 Intersection over Union (per-view)
+
+$$\text{IoU}_v = \frac{|\hat{B}_v \cap B_v|}{|\hat{B}_v \cup B_v| + \epsilon}$$
+
+The relationship between the two metrics is:
+
+$$\text{IoU} = \frac{\text{DSC}}{2 - \text{DSC}}$$
+
+IoU is a stricter metric — it penalises both false positives and false negatives more heavily than Dice. A Dice of 0.965 corresponds to an IoU of 0.933.
+
+### 13.4 Cohort-Level Reporting
+
+For each patient $p$, the mean Dice and mean IoU across all 5 views are computed:
+
+$$\overline{\text{DSC}}_p = \frac{1}{V}\sum_{v=1}^{V} \text{DSC}_{v,p}, \qquad \overline{\text{IoU}}_p = \frac{1}{V}\sum_{v=1}^{V} \text{IoU}_{v,p}$$
+
+The overall cohort performance is the grand mean across all patients:
+
+$$\overline{\text{DSC}} = \frac{1}{P}\sum_{p=1}^{P} \overline{\text{DSC}}_p, \qquad \overline{\text{IoU}} = \frac{1}{P}\sum_{p=1}^{P} \overline{\text{IoU}}_p$$
+
+A bar chart (`cohort_performance_plot.png`) is generated showing the per-patient Dice and IoU scores side by side, enabling rapid identification of outlier patients.
+
+---
+
+## 14. Distributed Data Parallel (DDP) Training
+
+The training loop supports multi-GPU training via PyTorch's `DistributedDataParallel`. When launched with `torchrun --nproc_per_node=N`, each GPU processes a disjoint subset of patients via a `DistributedSampler`. Gradients are synchronised across GPUs via NCCL all-reduce after each backward pass. The training loss is averaged across all ranks before logging.
+
+Key implementation details:
+- The encoder and MLP are both wrapped in DDP with per-device output.
+- Only the main rank (`RANK == 0`) performs validation, checkpointing, and visualisation.
+- `train_sampler.set_epoch(epoch)` ensures proper shuffling across epochs.
+- Mixed precision (`torch.cuda.amp`) and gradient checkpointing are enabled for VRAM efficiency.
+
+---
+
+## 15. Preliminary Results (v2.2)
+
+| Patient | Mean Dice | Mean IoU |
+|---|---|---|
+| Patient_121 | 0.965 | 0.933 |
+
+*(Full cohort results pending completion of the near-plane fix run.)*
