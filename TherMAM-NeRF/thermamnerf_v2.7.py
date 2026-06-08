@@ -445,7 +445,10 @@ def volume_render(sigma: torch.Tensor, T_field: torch.Tensor,
                    1.0 - alpha[:, :-1] + 1e-10], dim=1), dim=1)
     weights = alpha * T_trans
     rendered_mask = weights.sum(dim=1)
-    rendered_temp = (weights * T_field).sum(dim=1)
+    
+    # DETACH weights so thermal loss only updates T_field and doesn't destroy geometry!
+    rendered_temp = (weights.detach() * T_field).sum(dim=1)
+    
     opacity_mask  = (rendered_mask.detach() > 0.05).float()
     rendered_temp = (rendered_temp / (rendered_mask.detach() + 1e-6)) * opacity_mask
     return rendered_mask, rendered_temp
@@ -647,7 +650,7 @@ if RESUME and os.path.exists(ckpt_path):
         scheduler.step()
 
 
-history       = {'train_loss': [], 'val_dice': [], 'val_thermal': [], 'val_iou': []}
+history       = {'train_loss': [], 'val_dice': [], 'val_thermal': [], 'val_iou': [], 'val_joint': []}
 best_val_dice = float('inf')
 
 for epoch in tqdm(range(START_EPOCH, CFG['n_epochs'] + 1), desc='Training Epochs'):
@@ -668,9 +671,6 @@ for epoch in tqdm(range(START_EPOCH, CFG['n_epochs'] + 1), desc='Training Epochs
     
     # Entropy loss ramps up to clean streaks gently
     cfg_step['lambda_entropy'] = CFG.get('lambda_entropy', 0.05) * min(1.0, epoch / 100.0)
-    
-    # TURN OFF THERMAL LOSS COMPLETELY
-    cfg_step['lambda_thermal'] = 0.0
     
     cfg_step['density_scale'] = CFG.get('density_scale', 50.0)
     
@@ -699,7 +699,7 @@ for epoch in tqdm(range(START_EPOCH, CFG['n_epochs'] + 1), desc='Training Epochs
     scheduler.step()
     history['train_loss'].append(mean_train)
 
-    if IS_MAIN and (epoch % 10 == 0 or epoch == 1):
+    if IS_MAIN:
         encoder.eval()
         mlp.eval()
         val_dice_losses, val_therm_losses = [], []
@@ -716,12 +716,23 @@ for epoch in tqdm(range(START_EPOCH, CFG['n_epochs'] + 1), desc='Training Epochs
         vt = np.mean(val_therm_losses)
         dice_score = 1 - vd
         iou_score  = dice_score / (2 - dice_score) if dice_score < 1.0 else 1.0
+        
+        # Joint validation metric (lower is better): Dice Loss + scaled Thermal MSE
+        # Since thermal loss is MSE (~0.05), we scale it to be comparable to Dice loss (~0.1)
+        joint_val = vd + (CFG.get('lambda_thermal', 10.0) / 10.0) * vt
+        
         history['val_dice'].append(vd)
         history['val_thermal'].append(vt)
         history['val_iou'].append(iou_score)
-        if vd < best_val_dice:
-            best_val_dice = vd
+        history['val_joint'].append(joint_val)
+        
+        if joint_val < best_val_dice:
+            best_val_dice = joint_val
             torch.save({'encoder': encoder_base.state_dict(), 'mlp': mlp_base.state_dict()}, os.path.join(OUTPUT_DIR, 'thermamnerf_best.pth'))
+        
+        # Also always save the latest model
+        torch.save({'encoder': encoder_base.state_dict(), 'mlp': mlp_base.state_dict()}, os.path.join(OUTPUT_DIR, 'thermamnerf_latest.pth'))
+        
         print(f'Epoch {epoch:03d}/{CFG["n_epochs"]} | ' \
               f'Train Loss: {mean_train:.4f} | ' \
               f'Val Dice Loss: {vd:.4f} (Dice: {dice_score:.4f}) | ' \
@@ -896,21 +907,20 @@ if IS_MAIN:
         val_dice_scores = [1 - d for d in history['val_dice']]
         axes[0, 1].plot(val_dice_scores, color='green', marker='o', markersize=3)
         axes[0, 1].set_title('Val Dice Score')
-        axes[0, 1].set_xlabel('Evaluation Step')
+        axes[0, 1].set_xlabel('Epoch')
         axes[0, 1].set_ylim(0.0, 1.0)
         axes[0, 1].grid(True)
 
-        # Val IoU
-        axes[1, 0].plot(history['val_iou'], color='purple', marker='o', markersize=3)
-        axes[1, 0].set_title('Val IoU')
-        axes[1, 0].set_xlabel('Evaluation Step')
-        axes[1, 0].set_ylim(0.0, 1.0)
+        # Val Joint Metric (Checkpoint metric)
+        axes[1, 0].plot(history['val_joint'], color='orange', marker='o', markersize=3)
+        axes[1, 0].set_title('Val Joint Metric (vd + scaled_vt)')
+        axes[1, 0].set_xlabel('Epoch')
         axes[1, 0].grid(True)
 
         # Val Thermal MSE
         axes[1, 1].plot(history['val_thermal'], color='red', marker='o', markersize=3)
         axes[1, 1].set_title('Val Thermal MSE')
-        axes[1, 1].set_xlabel('Evaluation Step')
+        axes[1, 1].set_xlabel('Epoch')
         axes[1, 1].grid(True)
 
         plt.suptitle('TherMAM-NeRF v2.2 Joint Training (λ_bg=2.0, λ_therm=10.0)')
