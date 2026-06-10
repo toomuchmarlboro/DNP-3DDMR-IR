@@ -93,7 +93,7 @@ CFG = {
     'n_epochs'        : 500,
     'lr'              : 5e-4,
     'lambda_dice'     : 1.0,
-    'lambda_bg'       : 2.0,     # Increased to 2.0 to delete ghosting and maximize Dice
+    'lambda_bg'       : 5.0,     # Increased to 2.0 to delete ghosting and maximize Dice
     'lambda_thermal'  : 10.0,    # ACTIVATED! Training thermal & geometry jointly from scratch
     'lambda_tv'       : 0.01,    # Strong enough to keep edges smooth
     'lambda_entropy'  : 0.0,     # Disabled to prevent tearing in disputed regions
@@ -937,3 +937,4 @@ if WORLD_SIZE > 1:
 
 if __name__ == '__main__':
     print('Script executed directly. Training has already run in top-level scope.')
+s
