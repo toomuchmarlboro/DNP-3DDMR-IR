@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-DDP usage: `torchrun --nproc_per_node=2 thermamnerf_v2.9.py`
+DDP usage: `torchrun --nproc_per_node=2 thermamnerf_v3.1.py`
 """
 
 import os
@@ -76,7 +76,7 @@ CFG = {
 
     'feat_channels'   : 32,
 
-    'pos_enc_L'       : 6,
+    'pos_enc_L'       : 8,
     'mlp_hidden'      : 256,
     'mlp_layers'      : 4,
 
