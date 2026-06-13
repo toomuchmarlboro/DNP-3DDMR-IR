@@ -1,8 +1,8 @@
-# 3D Breast Thermography Reconstruction
+# 3D Breast Thermography Reconstruction & Inverse Bioheat
 
-This repository documents a multi-stage research pipeline for reconstructing breast shape information from multi-view thermographic images. The project has evolved through several phases: background removal, U-Net segmentation, 2.5D geometric reconstruction, exploratory representation learning, and the current BreastNet3D notebook that learns a 3D occupancy volume from five aligned views.
+This repository documents a multi-stage research pipeline that reconstructs breast **shape and surface temperature** from multi-view thermographic images, and then estimates deep-tissue **tumour parameters** (position, depth, size) from that reconstruction by solving the inverse Pennes bioheat problem.
 
-This README is written as a handoff document for future contributors, especially Zifa and Jessie. It explains what each stage does, why it exists, and how the pieces connect.
+This README is written as a handoff document for future contributors, especially Zifa and Jessie. It explains what the **current** pipeline does, what **previous** approaches existed and **why each was superseded**, and how the pieces connect.
 
 The project is guided by the canonical five-view acquisition protocol:
 
@@ -12,232 +12,163 @@ The project is guided by the canonical five-view acquisition protocol:
 * Right lateral: +90°
 * Left lateral: -90°
 
-The sign convention above is the one used throughout the repository and matches the paper-aligned registration notes in the reconstruction code.
+The sign convention above is used throughout the repository and matches the paper-aligned registration notes in the reconstruction code.
 
 ---
 
-## Project Summary
+## Current Pipeline at a Glance
 
-The repository contains two broad families of work.
+```
+16-bit thermal TIFFs
+        │
+        ▼
+ U-Net breast-region segmentation  ──►  binary masks
+        │
+        ▼
+ TherMAM-NeRF (thermal neural field)  ──►  watertight geometry (STL)  +  per-vertex surface temperature
+        │
+        ▼
+ PINN v3 inverse bioheat (forward-matching)  ──►  tumour position, depth, size
+        │
+        ▼
+ FEM (FEniCSx) forward verification + interactive 3D viewers
+```
 
-The first family is the earlier geometric pipeline captured in [KPE_Current.ipynb](UNET_Segmentation/KPE_Current.ipynb). That notebook focuses on contour extraction, keypoint detection, rigid registration, and lofting a 3D breast surface from ordered 2D curves. It follows the methodology inspired by Costa et al. and implements the project’s 2.5D geometric interpretation of the thermographic views.
-
-The second family is the newer learned reconstruction path, centered on [breastnet3d_v4.ipynb](UNET_Segmentation/3DBreastnet/breastnet3d_v4.ipynb). This final version uses five-view binary masks as input to an encoder-decoder model, predicts a 128x128x128 3D occupancy volume, and then renders differentiable projections back into the five canonical views for self-supervised training.
-
-In practical terms, the repository now covers three levels of work:
-
-* preprocessing and masking
-* classical geometric reconstruction
-* learned 3D reconstruction and export
-
----
-
-## Repository Evolution
-
-### 1. Preprocessing and mask generation
-
-The script [watershed_background_removal.py](watershed_background_removal.py) removes the background from organized thermograms using watershed segmentation. It produces binary masks and, optionally, radiometric masked arrays that preserve the original thermal values while setting the background to zero.
-
-This step matters because all later stages assume that the breast region has already been isolated from the room background and imaging artifacts.
-
-### 2. Exploratory representation learning
-
-The file [CNNVAE_test.py](CNNVAE_test.py) is an exploratory experiment rather than a final production component. It implements a convolutional variational autoencoder for thermal images and includes feature-space analysis tools such as latent sampling and t-SNE visualization.
-
-Its role in the repository is historical and methodological. It demonstrates that the project first explored whether thermal images could support latent representation learning before moving into shape reconstruction.
-
-### 3. Classical 2.5D geometric reconstruction
-
-The notebook [KPE_Current.ipynb](UNET_Segmentation/KPE_Current.ipynb) is the main record of the earlier geometric pipeline. It extracts anatomical curves and anchor points from five-view masks, aligns them in a consistent coordinate system, and reconstructs a breast surface from the ordered geometry.
-
-This notebook is important because it defines the project’s anatomical logic: how the five views are interpreted, how the contour points are ordered, and how the pivot points are mapped across views.
-
-### 4. Learned 3D reconstruction
-
-The current BreastNet3D notebooks (specifically `breastnet3d_v4.ipynb`) extend the project into a robust learned reconstruction formulation. Instead of lofting a surface directly from curve geometry, the model learns a latent representation from the 5-view masks and decodes it into a 3D occupancy volume. The training pipeline resolves FP16 gradient overflow via forced FP32 rendering and achieves high geometric accuracy (~0.84 Dice score).
-
-This is the current working direction of the project in the repository.
+The **active** components are: preprocessing + U-Net (masks), TherMAM-NeRF (reconstruction), and the v3 forward-matching PINN (inverse bioheat). Everything under "Previous Work" is retained for reference but is **no longer on the active path** — each entry states why.
 
 ---
 
-## Previous Work: KPE_Current.ipynb
+## Foundational Stages (still used)
 
-The earlier notebook [KPE_Current.ipynb](UNET_Segmentation/KPE_Current.ipynb) is best understood as a structured geometric pipeline. It contains the following phases.
+### 1. Preprocessing — [watershed_background_removal.py](watershed_background_removal.py)
 
-### Phase 1 and Phase 2: segmentation and refinement
+Removes the background from organized thermograms via watershed segmentation, producing binary masks and optional radiometric masked arrays that preserve thermal values while zeroing the background. All later stages assume the breast region is isolated from room background and imaging artifacts.
 
-The raw thermal input is segmented with a U-Net. The output is a binary silhouette of the breast region. Morphological cleanup is used to reduce noise and stabilize the contour.
+### 2. U-Net breast-region segmentation
 
-If the input intensity image is denoted by $I(x,y)$ and the normalized output by $I_{norm}(x,y)$, the project uses the usual min-max scaling:
+A **semantic segmentation** U-Net delineates the breast region from single-channel thermal images. Its binary masks are the backbone input for everything downstream: they define the **silhouette contours** the reconstruction consumes, and they isolate the **region of interest**, removing background thermal noise before bioheat analysis. Source notebook: [UNET_Segmentation_newest.ipynb](<UNET_Segmentation/Masking and Segmentation/UNET_Segmentation_newest.ipynb>); trained checkpoints in [UNET_Segmentation/HybridPlan/](UNET_Segmentation/HybridPlan/). Full write-up: [Docs/Stage2_UNet_Segmentation.md](Docs/Stage2_UNet_Segmentation.md).
 
-$$
-I_{norm}(x,y) = \frac{I(x,y) - I_{min}}{I_{max} - I_{min} + \epsilon}
-$$
-
-### Phase 3: inframammary fold extraction
-
-The goal is to isolate the lower boundary of the breast contour. The code traces the lower edge, removes the lateral vertical segments, and then orders the remaining points into a continuous polyline. That ordering step is important because later interpolation assumes an actual curve, not an unordered point cloud.
-
-### Phase 4: anatomical keypoint extraction
-
-The notebook extracts the anchor points $P1$, $P2$, and $P3$ used to register the contours across views.
-
-For frontal and oblique views, the interpretation is:
-
-$$
-P2 = \arg\min_{(x,y)} y, \quad P1 = \arg\max_{(x,y)} x, \quad P3 = \arg\min_{(x,y)} x
-$$
-
-For lateral views, the convention changes because the image is effectively rotated relative to the body axis. The notebook keeps the paper-aligned interpretation of the sign convention and view-specific anchor assignment.
-
-### Phase 5: 3D geometric transformation
-
-The ordered 2D curves are lifted into a common 3D coordinate system using a rigid rotation around the $Y$ axis.
-
-For a contour point $(x_c, y_c)$ and a local pivot $P2$, the transformed coordinates are:
-
-$$
-x' = x_c - P2_x, \quad y' = y_c - P2_y
-$$
-
-$$
-x_{rot} = x' \cos(\theta), \quad y_{rot} = y', \quad z_{rot} = -x' \sin(\theta)
-$$
-
-The sign convention used here is important. In the repository notes, right oblique is $+45^\circ$, left oblique is $-45^\circ$, right lateral is $+90^\circ$, and left lateral is $-90^\circ$.
-
-### Phase 6: B-spline fitting
-
-Each lifted curve is smoothed with a degree-4 B-spline. This makes the curve easier to compare, loft, and visualize.
-
-### Phase 7 and Phase 8: visualization and surface construction
-
-The notebook visualizes the result and then constructs a lofted surface from the curve family. In practical terms, this converts a set of anatomical boundary curves into a continuous surface estimate that can be inspected and exported.
+* **Input / normalisation:** 16-bit calibrated TIFFs resized to $256\times256$ (area interpolation to preserve thermal energy), min–max normalised $m_{i,j} = (P_{i,j}-\min P)/(\max P-\min P)$ so kernels learn morphology invariant to the patient's absolute baseline temperature.
+* **Ground truth:** manual polygon annotation (`MANUAL MASKING.ipynb`) with anatomical priors — exclude neck/upper torso, truncate at the lateral fold (no axillary leakage), trace the inframammary fold — rasterised with `cv2.fillPoly`. 162 samples split 78 % train / 22 % test.
+* **Augmentation:** horizontal flip ($p=0.5$, applied to image+mask) and brightness jitter $\gamma\sim U[0.8,1.2]$ (image only, to simulate ambient thermal variation).
+* **Architecture:** 4-level encoder–decoder U-Net with skip connections (contracting path for semantic context, expanding path for precise localisation), Kaiming/He initialisation.
+* **Loss:** hybrid $\mathcal{L} = 0.6\,\mathcal{L}_{\text{BCE}} + 0.4\,\mathcal{L}_{\text{Dice}}$ — BCE for smooth pixel-level gradients, soft Dice for class-imbalance robustness (small breast regions in lateral views).
+* **Training:** AdamW ($\eta_0=3\times10^{-4}$, weight decay $10^{-4}$), `ReduceLROnPlateau`, early stop ≈ epoch 40. **Test Dice $0.8935 \pm 0.0542$.**
+* **Inference:** sigmoid + threshold 0.5, then keep the largest connected component (a breast is one continuous mass), and Canny edge detection isolates the silhouette boundary. The checkpoint is used **frozen** at runtime by the reconstruction stage to generate masks on demand.
 
 ---
 
-## Current Work: BreastNet3D (v4)
+## Current Work: TherMAM-NeRF Thermal Neural Field
 
-The current BreastNet3D notebook (`breastnet3d_v4.ipynb`) is the most important file for the next stage of the project. It is a stable, self-supervised learned reconstruction pipeline that starts from five-view masks and predicts a 3D volume.
+Reconstruction has progressed from mask-based occupancy (BreastNet3D, see Previous Work) to **TherMAM-NeRF**, a neural radiance-style field that learns *both* breast geometry and a continuous surface-temperature field from the five aligned IR views. Code lives in [TherMAM-NeRF/](TherMAM-NeRF/); the current stable training script is [thermamnerf_v2.9.py](TherMAM-NeRF/thermamnerf_v2.9.py).
 
-### Core idea
+* A **Siamese encoder** fuses the five-view IR + mask inputs into per-view features; a **ThermamNeRF MLP** decodes a volumetric field giving, at each point, an occupancy density `sigma` and a temperature `T`.
+* Geometry is extracted by **marching cubes** on the `sigma` grid (128³), repaired to a watertight mesh with trimesh, and exported as STL.
+* The temperature field is sampled onto the surface vertices to produce a per-vertex **surface IR map** (`T_measured`).
 
-The model takes the 5-view binary masks, encodes them into a latent vector, decodes that latent vector into a 3D occupancy grid, and compares rendered projections against the observed masks. In other words, it learns a 3D shape that remains consistent with all five 2D silhouettes.
+**Why TherMAM-NeRF replaced BreastNet3D for this project:** the bioheat stage needs a per-surface-vertex *temperature*, not just a silhouette. BreastNet3D learns geometry from binary masks only and discards the thermal signal during reconstruction. TherMAM-NeRF jointly learns geometry and temperature, which is exactly the input the inverse-bioheat solver consumes.
 
-The reconstruction objective is driven by a differentiable projection model:
-
-$$
-Projection(h,w) = 1 - \exp\left(-\sum_d V_{rot}(d,h,w)\right)
-$$
-
-where $V_{rot}$ is the rotated volume and the sum is taken over the depth dimension.
-
-### Model structure
-
-The current notebook uses the following components:
-
-* a frozen U-Net segmentation model to dynamically obtain masks at runtime
-* a patient grouper that selects only complete 5-view patients
-* a 2D encoder that maps the 5-channel mask tensor to a 1000-dimensional latent vector
-* a 3D decoder that expands the latent code into a $128 \times 128 \times 128$ occupancy volume
-* a differentiable visual-hull style renderer for consistency training, strictly executing in `float32` to prevent NaN gradient collapse
-* inference routines that recover the best per-view angles and map RAW temperature information onto the reconstructed volume using interactive WebGL (Plotly)
-
-### 3D Temperature Overlay (Sec 2.2.5)
-
-Following the canonical paper methodology, `breastnet3d_v4.ipynb` includes a rigorous implementation for mapping 2D thermal data onto the generated 3D silhouette:
-1. **View Angle Estimation**: Minimizes the Dice loss between the 2D silhouette and projections of the 3D volume to find the precise estimated view angle (e.g., searching $\pm 20^\circ$ around base angles).
-2. **Ray-Cast Visibility**: Rotates the volume vertices and calculates normal vectors to map only front-facing geometry, avoiding back-projection.
-3. **Absolute Thermal Mapping**: Directly samples the absolute temperatures (°C) from the original RAW `.tiff` images (bypassing Min-Max normalized tensors).
-4. **Missing Data Interpolation**: Resolves geometric self-occlusion ("black spots") by applying K-Nearest-Neighbor interpolation across the 3D surface.
-5. **Smoothing**: Pre-processes the volume via 3D Gaussian smoothing prior to `marching_cubes` to eliminate voxel staircasing artifacts.
-
-### Self-supervised training objective
-
-The notebook uses Dice loss between the projected reconstruction and the input silhouette masks. The Dice loss is written as:
-
-$$
-\mathcal{L}_{Dice}(P,T) = 1 - \frac{2\sum (P \cdot T)}{\sum P^2 + \sum T^2 + \epsilon}
-$$
-
-This loss is a natural fit for binary silhouettes because it penalizes overlap errors directly and is less sensitive than pixelwise accuracy to foreground-background imbalance.
-
-### Validation metrics
-
-The notebook tracks:
-
-* training loss
-* validation loss
-* validation Dice score
-* validation HD95
-
-The 95th-percentile Hausdorff distance is used because it is more robust than the raw maximum distance and better reflects practical contour mismatch.
-
-### Why this matters
-
-This learned version of the pipeline is a conceptual shift from pure geometric reconstruction to reconstruction constrained by learning. It is especially useful when the contour extraction and curve matching logic become too brittle across patients, views, or image quality.
+**What the downstream solver trusts:** TherMAM-NeRF produces a *volumetric* temperature field, but only its **surface** values are used. A NeRF trained on outside-in IR views cannot observe the breast interior — its interior temperature is an unconstrained extrapolation. The bioheat solver therefore consumes the reliable **surface** output and lets physics determine the interior.
 
 ---
 
-## Data Flow
+## Current Work: PINN v3 Inverse Bioheat (Forward-Matching)
 
-The current project pipeline can be summarized as follows.
+The goal is a **screening** estimate of a tumour's **position, depth, and size** inside the reconstructed breast, by coupling the NeRF surface temperature to the **Pennes bioheat equation**:
 
-1. Input thermographic views are organized by patient and class.
-2. Background is removed or reduced with watershed preprocessing when needed.
-3. Binary masks are generated or recovered using the frozen U-Net.
-4. The masks are grouped into complete five-view patient sets.
-5. The 5-view masks are encoded into a latent vector.
-6. The latent vector is decoded into a 3D volume.
-7. The volume is rendered back into the five canonical views.
-8. The predicted projections are compared with the target masks.
-9. The final volume is exported along with asymmetry features and quality checks.
+$$ \nabla\cdot(k\nabla T) + \omega_b c_b (T_a - T) + Q_m + Q_{tumour} = 0 $$
 
-The export stage writes patient-level outputs such as:
+The current implementation is [Thermamnerf_PINN_v3.ipynb](TherMAM-NeRF/Thermamnerf_PINN_v3.ipynb).
 
-* binary 3D volume
-* soft occupancy volume
-* thermal volume overlay
-* estimated view angles
-* projection checks
-* asymmetry feature tables
+### Why v3 differs from earlier inverse PINNs (a documented negative result)
+
+Earlier inverse PINNs (including the legacy [PINN_Pipeline.py](UNET_Segmentation/PINNpdeSolver/PINN_Pipeline.py)) tried to learn **all five** tumour parameters jointly — centre $(x_t,y_t,z_t)$, radius $r_t$, **and** peak metabolic heat $Q_{max}$ — by minimising the PDE residual of a free-form temperature MLP. On real DMR-IR data this **does not work**, for two now-understood reasons:
+
+1. **Magnitude is unidentifiable from the surface.** Bezerra et al. (2013) show via sensitivity analysis that the tumour heat *magnitude* has near-zero surface sensitivity. Our runs confirmed it — $Q_{max}$ stayed frozen at its initialisation for both benign and malignant patients. (Mukhmetov et al. 2025, the closest published method, *fixes* the magnitude and trains only geometry; their 0.7–5 % accuracy is on synthetic ANSYS data, and their single real patient had 18.7 % radius error with unverifiable depth.)
+2. **A free source escapes to the boundary.** The tumour heat source is non-negative ($Q_{tumour}\ge 0$), so it cannot cancel the positive interior PDE residual, but it *can* exploit the negative residual in the boundary layer next to the skin. A source left free to minimise the residual flees to the surface and collapses — observed in every free-source variant we tried (free 5-param, geometry-only, and lateral-pinned).
+
+### The v3 formulation (the fix)
+
+v3 treats the PINN as a **forward** solver used inside a low-dimensional inverse search:
+
+* **Magnitude is fixed by physiology**, not learned — tied to radius via the Gautherie tumour doubling-time law ($Q_m\tau = C$), matching Bezerra's Table 1 (≈65 400 W/m³ at 1 cm, ≈7 800 W/m³ at 2.2 cm).
+* **Lateral position is pinned** to the centroid of the NeRF IR hot-spot — the one quantity surface thermography determines robustly.
+* For each candidate **(depth, radius)** the PINN solves the *forward* BVP — interior Pennes + chest-wall Dirichlet $T=37^\circ$C + convective Robin skin ($h_{conv}=10$, $T_{air}=20^\circ$C) — and **predicts** the skin temperature (never pinned to the data).
+* The inverse **searches depth × radius** (coarse grid → Nelder–Mead refine, persistent MLP warm-started across candidates) for the prediction whose **pattern** best matches the NeRF surface IR. The match is mean-centred so the absolute model-mismatch (imperfect $h/T_{air}$) does not dominate the shape fit that encodes depth.
+
+Because the source is **prescribed, not free**, it cannot escape to the boundary — the failure mode of every earlier version is structurally removed.
+
+### FEM Forward Verification
+
+An independent **dolfinx (FEniCSx)** + **Gmsh** finite-element forward solve of the same BVP cross-checks the recovered tumour against the NeRF surface IR. FEA here is a *verification*, not part of the inverse loop.
+
+### Outputs (per patient, under `TherMAM-NeRF/PINNpdeSolver/results/`)
+
+* `{Patient_ID}/{Patient_ID}.stl` / `.msh` — watertight geometry + tetrahedral mesh
+* `{Patient_ID}/{Patient_ID}_pinn.pth` — trained forward-solver weights
+* `{Patient_ID}_loss_convergence.png` — the **cost surface $J(\text{depth},\text{radius})$**; a clear interior minimum means depth/size are identified, a flat surface means the data does not constrain depth (reported honestly as a limitation)
+* `{Patient_ID}_3d_thermal.html`, `_fea_vs_ir.html`, `_tumor_localisation.html` — interactive 3D viewers
+* Per-patient `position, depth, radius, anatomical quadrant`
+
+### Running
+
+```bash
+conda activate bioheat
+# open and run top-to-bottom:
+#   TherMAM-NeRF/Thermamnerf_PINN_v3.ipynb
+```
+
+The notebook loads the trained TherMAM-NeRF checkpoint, reconstructs each patient's geometry + surface IR, runs the forward-matching inverse, and writes the artifacts above. Expect ~30 warm-started forward solves per patient — a few minutes each on the RTX 2080 Ti.
 
 ---
 
-## Output Artifacts
+## Previous Work
 
-The repository produces several types of outputs depending on the stage being run.
+These components shaped the project and are kept for reference, but are **not on the current path**. Each notes why.
 
-From preprocessing:
+### Classical 2.5D geometric reconstruction — [KPE_Current.ipynb](UNET_Segmentation/KPE_Current.ipynb)
 
-* binary masks
-* masked radiometric arrays
-* distribution plots of the dataset by view and class
+A structured geometric pipeline: extract anatomical curves and anchor points from five-view masks, register them in a common coordinate system, and loft a breast surface from ordered geometry. It defines the project's anatomical logic (view interpretation, contour ordering, pivot mapping).
 
-From the geometric pipeline:
+**Why superseded:** contour extraction and keypoint/curve matching are brittle across patients, views, and image quality — small segmentation errors or a mislabeled view break the registration. Learned reconstruction (below) was adopted to remove this fragility.
 
-* ordered contours
-* anchor points
-* reconstructed curves
-* lofted 3D visualization outputs
+Phases, for the record:
+1. **Segmentation & refinement** — U-Net silhouette + morphological cleanup.
+2. **Inframammary fold extraction** — trace and order the lower boundary into a continuous polyline.
+3. **Anatomical keypoint extraction** — anchors $P1,P2,P3$. Frontal/oblique: $P2=\arg\min y,\ P1=\arg\max x,\ P3=\arg\min x$; lateral views use the rotated-axis convention.
+4. **3D geometric transformation** — rigid rotation about $Y$ relative to pivot $P2$: $x_{rot}=x'\cos\theta,\ z_{rot}=-x'\sin\theta$.
+5. **B-spline fitting** — degree-4 smoothing of each lifted curve.
+6. **Visualization & lofted surface** — assemble boundary curves into a surface.
 
-From BreastNet3D:
+### Exploratory representation learning — [CNNVAE_test.py](CNNVAE_test.py)
 
-* `3dbreastnet_best.pth`
-* `3dbreastnet_last.pth`
-* `training_history.png`
-* patient-level `.npy` volumes
-* angle estimates in `.json`
-* projection comparison images
-* asymmetry feature CSV files
+A convolutional variational autoencoder for thermal images with latent sampling and t-SNE tools.
+
+**Why superseded:** this was a feasibility experiment to see whether thermal images support latent representation learning. It was never a production reconstruction component and led into, rather than being part of, the shape-reconstruction work.
+
+### Learned 3D occupancy reconstruction — BreastNet3D (v4 → v5)
+
+[breastnet3d_v4.ipynb](UNET_Segmentation/3DBreastnet/breastnet3d_v4.ipynb) and the upgraded [breastnet3d_v5.ipynb](UNET_Segmentation/3DBreastnet/breastnet3d_v5.ipynb) encode five-view binary masks into a latent vector, decode a $128^3$ occupancy volume, and render differentiable projections back into the five views for self-supervised training.
+
+* **Differentiable projection:** $Projection(h,w) = 1 - \exp\left(-\sum_d V_{rot}(d,h,w)\right)$ over a rotated volume.
+* **Loss:** Dice between projections and target masks, $\mathcal{L}_{Dice}(P,T) = 1 - \frac{2\sum (P\cdot T)}{\sum P^2 + \sum T^2 + \epsilon}$.
+* **v5 improvements:** `DoubleConv3D` blocks, gradient checkpointing, strict patient curation (122 complete sets from 137). Reported val Dice ≈ 0.848, HD95 ≈ 12.46.
+* It also included a post-hoc **thermal overlay** (Sec 2.2.5): view-angle estimation by Dice minimisation, ray-cast visibility, absolute-temperature sampling from RAW `.tiff`, KNN gap-filling, and Gaussian pre-smoothing before marching cubes.
+
+**Why superseded:** BreastNet3D reconstructs *geometry from silhouettes only* and discards the IR signal during reconstruction; its temperature was a post-hoc projection, not a learned field. The bioheat stage needs a jointly-learned surface temperature, so reconstruction moved to **TherMAM-NeRF**. BreastNet3D remains the reference for the occupancy/projection formulation and the asymmetry features.
+
+### Legacy inverse PINN — [PINN_Pipeline.py](UNET_Segmentation/PINNpdeSolver/PINN_Pipeline.py)
+
+A multi-start inverse PINN that tried to estimate $(x_t, r_t, Q_{max})$ jointly with an Adam→L-BFGS scheme, plus dolfinx FEM verification.
+
+**Why superseded:** it learns the tumour **magnitude** $Q_{max}$ as a free parameter — the quantity proven unidentifiable from surface data (see "Why v3 differs," above). It is replaced by the forward-matching v3, which fixes magnitude and estimates only geometry. The FEM verification idea carried forward into v3.
 
 ---
 
 ## Mathematical Notes
 
 ### Rotation matrix
-
-The learned and geometric pipelines both rely on a rotation around the $Y$ axis:
+Both the geometric and learned pipelines rotate about the $Y$ axis:
 
 $$
 R_y(\theta) =
@@ -249,106 +180,84 @@ R_y(\theta) =
 $$
 
 ### Asymmetry feature
-
-The post-reconstruction feature extraction computes a left-right asymmetry score from the binary volume:
+A left-right asymmetry score from the binary volume (used in the BreastNet3D feature export):
 
 $$
 Asymmetry_{LR} = \frac{|V_{left} - V_{right}|}{V_{left} + V_{right} + \epsilon}
 $$
 
-This is a simple but useful descriptor for comparing shape imbalance between the two sides of the breast.
+### Tumour magnitude vs. size (current bioheat stage)
+The Gautherie doubling-time relation fixes the tumour metabolic heat from its size, removing the unidentifiable magnitude DOF: $Q_m\,\tau = C$ with $C = 3.27\times10^6$ W·day/m³, and $D = 0.01\,e^{[0.002134(\tau-50)]}$.
+
+---
+
+## Output Artifacts
+
+From preprocessing & U-Net: binary masks (PNG, mirroring the TIFF hierarchy), masked radiometric arrays, dataset distribution plots, U-Net checkpoints in `UNET_Segmentation/HybridPlan/`.
+
+From BreastNet3D (previous): `3dbreastnet_best.pth`, `training_history.png`, per-patient `.npy` volumes, angle `.json`, projection comparison images, asymmetry feature CSVs.
+
+From TherMAM-NeRF + PINN v3 (current): see the "Outputs" list under PINN v3 above — watertight STL/MSH, trained weights, the $J(\text{depth},\text{radius})$ cost surface, interactive HTML viewers, and per-patient position/depth/size.
 
 ---
 
 ## Practical Notes for Future Contributors
 
-Zifa and Jessie: if you continue this project, the main thing to preserve is consistency in the view convention and patient grouping logic. Most reconstruction errors in this kind of pipeline come from mislabeled views, incomplete patient sets, or changing the angle sign convention halfway through the workflow.
-
-When extending the code, keep the following in mind:
+Zifa and Jessie: the main things to preserve are the **view convention** and **patient grouping** logic — most reconstruction errors come from mislabeled views, incomplete patient sets, or changing the angle sign convention mid-workflow.
 
 * Keep the five-view ordering fixed as RL, RO, F, LO, LL unless you update every dependent stage.
-* Keep the angle convention consistent with the repository notes and the paper-aligned registration logic.
-* Keep the preprocessing output format stable so older notebooks remain reproducible.
-* If you change the segmentation checkpoint, confirm that the mask generation remains compatible with the reconstruction notebook.
-* If you change the reconstruction volume size, update the encoder, decoder, renderer, and export routines together.
+* Keep the angle convention consistent with the repository notes and paper-aligned registration.
+* The U-Net masks are the foundation — if you change the segmentation checkpoint, re-verify that mask generation stays compatible with reconstruction (it is consumed frozen at runtime).
+* For the bioheat stage, remember the rule that makes v3 work: **fix the tumour magnitude, estimate only geometry, and never let the source minimise the PDE residual freely** (it escapes to the boundary). If you revisit the inverse, read "Why v3 differs" first.
+* The NeRF interior temperature is not trustworthy — only use its surface values downstream.
 
 ---
 
 ## Suggested Workflow
 
-If you are resuming the project from scratch, a reasonable order is:
+To run the **current** pipeline end-to-end:
 
-1. Run [watershed_background_removal.py](watershed_background_removal.py) if you need background-cleaned inputs.
-2. Review [KPE_Current.ipynb](UNET_Segmentation/KPE_Current.ipynb) for the geometric logic and historical reconstruction assumptions.
-3. Use [breastnet3d_v4.ipynb](UNET_Segmentation/3DBreastnet/breastnet3d_v4.ipynb) for the current learned 3D reconstruction path.
-4. Consult [CNNVAE_test.py](CNNVAE_test.py) only if you need the exploratory latent-space experiment.
+1. Run [watershed_background_removal.py](watershed_background_removal.py) for background-cleaned inputs, and generate breast masks with the frozen U-Net ([UNET_Segmentation_newest.ipynb](<UNET_Segmentation/Masking and Segmentation/UNET_Segmentation_newest.ipynb>)).
+2. Train / load the thermal neural field with [thermamnerf_v2.9.py](TherMAM-NeRF/thermamnerf_v2.9.py) to obtain geometry + surface temperature.
+3. Run [Thermamnerf_PINN_v3.ipynb](TherMAM-NeRF/Thermamnerf_PINN_v3.ipynb) top-to-bottom to reconstruct each patient and estimate tumour position/depth/size, with FEM verification and 3D viewers.
 
----
+To understand the **history / methodology** (not the active path):
 
-## Recent Updates: BreastNet3D (v5) and Dataset Integration
-
-### BreastNet3D (v5)
-The pipeline has been upgraded to its next iteration in [breastnet3d_v5.ipynb](UNET_Segmentation/3DBreastnet/breastnet3d_v5.ipynb), which builds upon the foundation of v4. Key findings and improvements in v5 include:
-* **Architecture:** Maintains a 128x128x128 voxel reconstruction derived from a 1000-dimensional latent representation, but implements structural improvements like `DoubleConv3D` blocks and gradient checkpointing in the 3D Decoder for memory-efficient backpropagation.
-* **Data Curation:** Explicitly filters incomplete patients (e.g., those with fewer than 5 valid views) to ensure strict alignment. In recent training runs, it isolated 122 complete patient sets from a pool of 137.
-* **Validation Performance:** Showcases strong generalization and reconstruction quality, achieving average validation Dice score of approximately 0.8484 and average HD95 of 12.46.
-
-### DMR-IR Dataset Verification
-Exploratory dataset work is captured in [datasettest.ipynb](Previous Works (VAE, legacy stuff, misc)/datasettest.ipynb), where we:
-* Utilized the Hugging Face `datasets` library to stream dataset metadata from `SemilleroCV/DMR-IR` without downloading the full 5GB contents.
-* Programmatically extracted and verified all `ClassLabel` categorical features. This ensures that the dataset’s built-in labels are properly understood and mapped for any future classification or conditional generation tasks in the pipeline.
+4. [KPE_Current.ipynb](UNET_Segmentation/KPE_Current.ipynb) — classical geometric reconstruction and the project's anatomical logic.
+5. [breastnet3d_v5.ipynb](UNET_Segmentation/3DBreastnet/breastnet3d_v5.ipynb) — learned occupancy reconstruction and asymmetry features.
+6. [CNNVAE_test.py](CNNVAE_test.py) — exploratory latent-space experiment.
 
 ---
 
-## Physics-Informed Neural Network (PINN) & FEM Bioheat Pipeline
+## DMR-IR Dataset
 
-We have fully implemented a clinical-grade, self-supervised pipeline for solving the **Inverse Pennes Bioheat Equation** to dynamically locate and characterize deep-tissue metabolic heat sources (tumors) inside the reconstructed 3D geometries.
-
-The entire workflow is automated in [PINN_Pipeline.py](UNET_Segmentation/PINNpdeSolver/PINN_Pipeline.py) and visualized in [visualize_3d_temperatures.ipynb](UNET_Segmentation/PINNpdeSolver/visualize_3d_temperatures.ipynb).
-
-### 🚀 Key Capabilities:
-1. **Multi-Start Inverse PINN Solver:** Estimates tumor coordinates ($\mathbf{x}_t$), thermal radius ($r_t$), and metabolic heat generation ($Q_{max}$) natively in PyTorch. It leverages a hybrid optimization scheme (Adam with adaptive PDE weight re-normalization, followed by fine-tuning with the L-BFGS second-order optimizer).
-2. **FEM Forward Verification:** Natively integrates a finite element solver using **dolfinx (FEniCSx)** and **Gmsh** to solve the forward bioheat problem on the patient's solid 3D tetrahedral mesh. It enforces convective air cooling on the outer skin ($h_{conv}=10\text{ W/m}^2\text{K}$, $T_{air}=20^\circ\text{C}$) and a core body temperature Dirichlet boundary condition ($T=37^\circ\text{C}$) at the flat chest wall boundary to ensure biophysical accuracy.
-3. **Structured Database Export:** Automatically organizes outputs per-patient inside the `results/` folder:
-   * `results/{Patient_ID}/{Patient_ID}.stl` and `.msh`: Registered geometry meshes.
-   * `results/{Patient_ID}/{Patient_ID}_pinn.pth`: PyTorch model state weights.
-   * `results/{Patient_ID}/{Patient_ID}_loss_convergence.png`: High-resolution training convergence plot.
-   * `results/{Patient_ID}/{Patient_ID}_T_measured.npy`, `_surf_pts.npy`, `_T_fea.npy`: Grid arrays.
-   * `results/pinn_fea_results.csv`: Master data spreadsheet summarizing parameters and residuals across the cohort of 122 patients.
-4. **Interactive 3D Visualizer (`visualize_3d_temperatures.ipynb`):** A PyVista-based notebook that loads the registered tetrahedral meshes and the continuous PINN neural field. It allows users to rotate the breast in 3D and slice it vertically (sagittal plane) to inspect the deep tumor hyperthermia core in clinical dark mode.
-
-### 🏃‍♂️ Running the Pipeline:
-Navigate to the directory and run:
-```bash
-conda activate bioheat
-python PINN_Pipeline.py
-```
+Dataset verification is captured in [datasettest.ipynb](<Previous Works (VAE, legacy stuff, misc)/datasettest.ipynb>): streaming metadata from `SemilleroCV/DMR-IR` via the Hugging Face `datasets` library without downloading the full 5 GB, and programmatically extracting/verifying the `ClassLabel` categories for downstream classification/labeling.
 
 ---
 
 ## Selected References
 
-This repository is inspired by and should be read alongside the following literature:
-
-* Arka Prabha Saha (2023), 3D-BreastNet: A Self-supervised Deep Learning Network for Reconstruction of 3D Breast Surface from 2D Thermal Images
-* Gleidson M. Costa (2023), Modeling the 3D Breast Surface Using Thermography
-* L.A. Bezerra (2013), Estimation of breast tumor thermal properties using infrared images
-* Thaweesak Trongtirakul (2023), Automated tumor segmentation in thermographic breast images
-* AAT Standard of Breast Thermography
-* HIKMICRO Pocket Series 2 Datasheet
-* DMR-IR dataset https://huggingface.co/datasets/SemilleroCV/DMR-IR
-
-These are the key conceptual references behind the segmentation, masking, geometric contouring, and learned representation steps used in the repository.
+* Olzhas Mukhmetov et al. (2025), *Non-Invasive Breast Cancer Detection Using Physics-Informed Neural Networks with Thermal Imaging and 3D Patient-Specific Breast Models* — the closest method to the v3 inverse (fixes magnitude, estimates geometry).
+* Olzhas Mukhmetov et al. (2023), *Physics-Informed Neural Network for Fast Prediction of Temperature Distributions in Cancerous Breasts* — PINN as a forward bioheat solver.
+* L.A. Bezerra (2013), *Estimation of breast tumor thermal properties using infrared images* — FEM-in-loop inverse + the sensitivity analysis showing magnitude/perfusion are unidentifiable from the surface.
+* M. Gautherie (1980/1983), tumour doubling-time vs. metabolic-heat relation used to fix $Q$ from size.
+* Arka Prabha Saha (2023), *3D-BreastNet: A Self-supervised Deep Learning Network for Reconstruction of 3D Breast Surface from 2D Thermal Images*.
+* Gleidson M. Costa (2023), *Modeling the 3D Breast Surface Using Thermography*.
+* Thaweesak Trongtirakul (2023), *Automated tumor segmentation in thermographic breast images*.
+* AAT Standard of Breast Thermography; HIKMICRO Pocket Series 2 Datasheet.
+* DMR-IR dataset — https://huggingface.co/datasets/SemilleroCV/DMR-IR
 
 ---
 
 ## Repository Files Worth Reading First
 
-* [README.md](README.md)
-* [UNET_Segmentation_newest.ipynb](<UNET_Segmentation/Masking and Segmentation/UNET_Segmentation_newest.ipynb>)
-* [KPE_Current.ipynb](UNET_Segmentation/KPE_Current.ipynb)
-* [breastnet3d_v5.ipynb](UNET_Segmentation/3DBreastnet/breastnet3d_v5.ipynb) (Upgraded Reconstruction Pipeline)
-* [CNNVAE_test.py](CNNVAE_test.py)
-* [view_patient_tiffs.py](UNET_Segmentation/3DBreastnet/view_patient_tiffs.py) (CLI utility for viewing absolute temperature data per patient)
+**Current path:**
+* [Thermamnerf_PINN_v3.ipynb](TherMAM-NeRF/Thermamnerf_PINN_v3.ipynb) — inverse bioheat (forward-matching)
+* [thermamnerf_v2.9.py](TherMAM-NeRF/thermamnerf_v2.9.py) — thermal neural field reconstruction
+* [UNET_Segmentation_newest.ipynb](<UNET_Segmentation/Masking and Segmentation/UNET_Segmentation_newest.ipynb>) — breast-region segmentation (foundational)
 
-This is the best starting point for anyone taking over the project.
+**History / methodology:**
+* [breastnet3d_v5.ipynb](UNET_Segmentation/3DBreastnet/breastnet3d_v5.ipynb) — learned occupancy reconstruction
+* [KPE_Current.ipynb](UNET_Segmentation/KPE_Current.ipynb) — classical geometric reconstruction
+* [CNNVAE_test.py](CNNVAE_test.py) — exploratory latent-space experiment
+* [view_patient_tiffs.py](UNET_Segmentation/3DBreastnet/view_patient_tiffs.py) — CLI for viewing absolute per-patient temperatures
