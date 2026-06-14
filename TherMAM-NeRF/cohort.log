@@ -29,3 +29,417 @@ STL saved → /mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolve
   hot-spot pin: lateral=(46.7, 24.5)mm  (2907 verts, top 10%)
   grid z=-101.8 r=  6.0 → J=7.0165  ★
   grid z=-101.8 r= 12.0 → J=6.8944  ★
+  grid z=-101.8 r= 18.0 → J=7.1438
+  grid z=-101.8 r= 24.0 → J=7.0571
+  grid z=-101.8 r= 30.0 → J=6.7521  ★
+  grid z= -79.5 r=  6.0 → J=6.7661
+  grid z= -79.5 r= 12.0 → J=7.0348
+  grid z= -79.5 r= 18.0 → J=6.9782
+  grid z= -79.5 r= 24.0 → J=6.7188  ★
+  grid z= -79.5 r= 30.0 → J=6.8722
+  grid z= -57.1 r=  6.0 → J=6.5171  ★
+  grid z= -57.1 r= 12.0 → J=7.1532
+  grid z= -57.1 r= 18.0 → J=6.5695
+  grid z= -57.1 r= 24.0 → J=6.7211
+  grid z= -57.1 r= 30.0 → J=6.5499
+  grid z= -34.8 r=  6.0 → J=7.0073
+  grid z= -34.8 r= 12.0 → J=6.6388
+  grid z= -34.8 r= 18.0 → J=6.0158  ★
+  grid z= -34.8 r= 24.0 → J=6.6795
+  grid z= -34.8 r= 30.0 → J=6.6014
+  grid z= -12.5 r=  6.0 → J=6.7167
+  grid z= -12.5 r= 12.0 → J=6.6211
+  grid z= -12.5 r= 18.0 → J=6.7951
+  grid z= -12.5 r= 24.0 → J=6.7117
+  grid z= -12.5 r= 30.0 → J=6.3037
+  grid z=   9.8 r=  6.0 → J=6.8199
+  grid z=   9.8 r= 12.0 → J=6.3705
+  grid z=   9.8 r= 18.0 → J=6.7667
+  grid z=   9.8 r= 24.0 → J=6.5321
+  grid z=   9.8 r= 30.0 → J=6.8395
+  refining (Nelder–Mead)…
+  refined → z=-34.8mm r=18.0mm J=6.0158
+  → lateral=(46.7,24.5)mm[pinned]  z=-34.8mm  r=18.0mm  depth=39.1mm  Q=5029W/m³  Upper Outer
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_1/Patient_1.msh'...
+Info    : 5 entities
+Info    : 102135 nodes
+Info    : [  0%] Reading nodes                                                                                Info    : [ 10%] Reading nodes                                                                                Info    : [ 20%] Reading nodes                                                                                Info    : [ 30%] Reading nodes                                                                                Info    : [ 40%] Reading nodes                                                                                Info    : [ 50%] Reading nodes                                                                                Info    : [ 60%] Reading nodes                                                                                Info    : [ 70%] Reading nodes                                                                                Info    : [ 80%] Reading nodes                                                                                Info    : [ 90%] Reading nodes                                                                                                                                                                Info    : 587096 elements
+Info    : [  0%] Reading elements                                                                                Info    : [ 10%] Reading elements                                                                                Info    : [ 20%] Reading elements                                                                                Info    : [ 30%] Reading elements                                                                                Info    : [ 40%] Reading elements                                                                                Info    : [ 50%] Reading elements                                                                                Info    : [ 60%] Reading elements                                                                                Info    : [ 70%] Reading elements                                                                                Info    : [ 80%] Reading elements                                                                                Info    : [ 90%] Reading elements                                                                                                                                                                Info    : 2 parametrizations
+Info    : [  0%] Processing parametrizations                                                                                Info    : [ 10%] Processing parametrizations                                                                                Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_1/Patient_1.msh'
+  FEA: 5.640°C → HIGH_RESIDUAL
+FEA-vs-IR plot saved → /mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_1_fea_vs_ir.html
+  ✓ Patient_1 in 98.0 min → appended to /mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/pinn_fea_results.csv
+
+════════════════════════════════════════════════════════════
+[2/122] Patient_10 (benign)  idx=1
+════════════════════════════════════════════════════════════
+Extracting volume for Patient_10 (benign) …
+  calibrated breast_radius_mm: 137.8 mm (mask 83px wide, default was 70.0mm)
+  largest component: 21,030 verts, 42,056 faces
+  after repair     : watertight=True
+  laplacian smooth : 20 iters
+  T_measured: 22.4–33.2°C
+STL saved → /mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_10/Patient_10.stl
+  surface split: 1948 chest-wall / 19082 skin vertices
+  hot-spot pin: lateral=(34.8, -2.9)mm  (1909 verts, top 10%)
+  grid z= -57.8 r=  6.0 → J=5.8388  ★
+  grid z= -57.8 r= 12.0 → J=6.5352
+  grid z= -57.8 r= 18.0 → J=6.7338
+  grid z= -57.8 r= 24.0 → J=5.7919  ★
+  grid z= -57.8 r= 30.0 → J=6.3357
+  grid z= -41.5 r=  6.0 → J=5.9343
+  grid z= -41.5 r= 12.0 → J=4.9708  ★
+  grid z= -41.5 r= 18.0 → J=4.9420  ★
+  grid z= -41.5 r= 24.0 → J=5.8125
+  grid z= -41.5 r= 30.0 → J=6.8821
+  grid z= -25.2 r=  6.0 → J=6.5680
+  grid z= -25.2 r= 12.0 → J=6.3124
+  grid z= -25.2 r= 18.0 → J=6.5110
+  grid z= -25.2 r= 24.0 → J=6.5172
+  grid z= -25.2 r= 30.0 → J=6.3167
+  grid z=  -9.0 r=  6.0 → J=6.3730
+  grid z=  -9.0 r= 12.0 → J=5.4788
+  grid z=  -9.0 r= 18.0 → J=6.1660
+  grid z=  -9.0 r= 24.0 → J=6.0389
+  grid z=  -9.0 r= 30.0 → J=6.2998
+  grid z=   7.3 r=  6.0 → J=6.6115
+  grid z=   7.3 r= 12.0 → J=6.4297
+  grid z=   7.3 r= 18.0 → J=5.9640
+  grid z=   7.3 r= 24.0 → J=4.9317  ★
+  grid z=   7.3 r= 30.0 → J=5.4745
+  grid z=  23.6 r=  6.0 → J=4.4259  ★
+  grid z=  23.6 r= 12.0 → J=5.4627
+  grid z=  23.6 r= 18.0 → J=5.5965
+  grid z=  23.6 r= 24.0 → J=3.1225  ★
+  grid z=  23.6 r= 30.0 → J=6.5357
+  refining (Nelder–Mead)…
+  refined → z=23.6mm r=24.0mm J=3.1225
+  → lateral=(34.8,-2.9)mm[pinned]  z=23.6mm  r=24.0mm  depth=12.8mm  Q=4165W/m³  Lower Outer
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_10/Patient_10.msh'...
+Info    : 5 entities
+Info    : 45617 nodes
+Info    : 259367 elements
+Info    : [  0%] Reading elements                                                                                Info    : [ 10%] Reading elements                                                                                Info    : [ 20%] Reading elements                                                                                Info    : [ 30%] Reading elements                                                                                Info    : [ 40%] Reading elements                                                                                Info    : [ 50%] Reading elements                                                                                Info    : [ 60%] Reading elements                                                                                Info    : [ 70%] Reading elements                                                                                Info    : [ 80%] Reading elements                                                                                Info    : [ 90%] Reading elements                                                                                                                                                                Info    : 2 parametrizations
+Info    : [  0%] Processing parametrizations                                                                                Info    : [ 10%] Processing parametrizations                                                                                Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_10/Patient_10.msh'
+  FEA: 5.290°C → HIGH_RESIDUAL
+FEA-vs-IR plot saved → /mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_10_fea_vs_ir.html
+  ✓ Patient_10 in 95.3 min → appended to /mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/pinn_fea_results.csv
+
+════════════════════════════════════════════════════════════
+[3/122] Patient_100 (benign)  idx=2
+════════════════════════════════════════════════════════════
+Extracting volume for Patient_100 (benign) …
+  calibrated breast_radius_mm: 142.8 mm (mask 86px wide, default was 70.0mm)
+  largest component: 32,676 verts, 65,348 faces
+  after repair     : watertight=True
+  laplacian smooth : 20 iters
+  T_measured: 21.2–32.9°C
+STL saved → /mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_100/Patient_100.stl
+  surface split: 3405 chest-wall / 29271 skin vertices
+  hot-spot pin: lateral=(-2.8, 31.1)mm  (2928 verts, top 10%)
+  grid z= -65.4 r=  6.0 → J=5.5436  ★
+  grid z= -65.4 r= 12.0 → J=5.8667
+  grid z= -65.4 r= 18.0 → J=5.6729
+  grid z= -65.4 r= 24.0 → J=5.8606
+  grid z= -65.4 r= 30.0 → J=5.9673
+  grid z= -47.3 r=  6.0 → J=6.0439
+  grid z= -47.3 r= 12.0 → J=4.5133  ★
+  grid z= -47.3 r= 18.0 → J=6.0785
+  grid z= -47.3 r= 24.0 → J=6.1207
+  grid z= -47.3 r= 30.0 → J=6.0056
+  grid z= -29.3 r=  6.0 → J=5.2504
+  grid z= -29.3 r= 12.0 → J=5.4225
+  grid z= -29.3 r= 18.0 → J=5.6794
+  grid z= -29.3 r= 24.0 → J=5.7591
+  grid z= -29.3 r= 30.0 → J=5.7745
+  grid z= -11.2 r=  6.0 → J=5.2645
+  grid z= -11.2 r= 12.0 → J=5.3406
+  grid z= -11.2 r= 18.0 → J=5.7657
+  grid z= -11.2 r= 24.0 → J=5.3518
+  grid z= -11.2 r= 30.0 → J=4.5194
+  grid z=   6.9 r=  6.0 → J=4.9674
+  grid z=   6.9 r= 12.0 → J=5.9579
+  grid z=   6.9 r= 18.0 → J=5.6015
+  grid z=   6.9 r= 24.0 → J=5.4694
+  grid z=   6.9 r= 30.0 → J=5.6864
+  grid z=  25.0 r=  6.0 → J=5.8739
+  grid z=  25.0 r= 12.0 → J=5.6603
+  grid z=  25.0 r= 18.0 → J=5.5304
+  grid z=  25.0 r= 24.0 → J=5.8723
+  grid z=  25.0 r= 30.0 → J=5.5468
+  refining (Nelder–Mead)…
+  refined → z=-47.3mm r=12.0mm J=4.5133
+  → lateral=(-2.8,31.1)mm[pinned]  z=-47.3mm  r=12.0mm  depth=19.8mm  Q=7105W/m³  Upper Inner
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_100/Patient_100.msh'...
+Info    : 5 entities
+Info    : 94524 nodes
+Info    : 543530 elements
+Info    : [  0%] Reading elements                                                                                Info    : [ 10%] Reading elements                                                                                Info    : [ 20%] Reading elements                                                                                Info    : [ 30%] Reading elements                                                                                Info    : [ 40%] Reading elements                                                                                Info    : [ 50%] Reading elements                                                                                Info    : [ 60%] Reading elements                                                                                Info    : [ 70%] Reading elements                                                                                Info    : [ 80%] Reading elements                                                                                Info    : [ 90%] Reading elements                                                                                                                                                                Info    : 2 parametrizations
+Info    : [  0%] Processing parametrizations                                                                                Info    : [ 10%] Processing parametrizations                                                                                Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_100/Patient_100.msh'
+  FEA: 4.564°C → HIGH_RESIDUAL
+FEA-vs-IR plot saved → /mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_100_fea_vs_ir.html
+  ✓ Patient_100 in 102.7 min → appended to /mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/pinn_fea_results.csv
+
+════════════════════════════════════════════════════════════
+[4/122] Patient_106 (benign)  idx=3
+════════════════════════════════════════════════════════════
+Extracting volume for Patient_106 (benign) …
+  calibrated breast_radius_mm: 166.0 mm (mask 100px wide, default was 70.0mm)
+  largest component: 36,992 verts, 73,980 faces
+  after repair     : watertight=True
+  laplacian smooth : 20 iters
+  T_measured: 21.9–32.1°C
+STL saved → /mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106.stl
+  surface split: 1484 chest-wall / 35508 skin vertices
+  hot-spot pin: lateral=(4.2, 74.9)mm  (3551 verts, top 10%)
+  grid z= -91.1 r=  6.0 → J=4.2912  ★
+  grid z= -91.1 r= 12.0 → J=4.1899  ★
+  grid z= -91.1 r= 18.0 → J=4.7079
+  grid z= -91.1 r= 24.0 → J=4.9588
+  grid z= -91.1 r= 30.0 → J=4.7249
+  grid z= -64.2 r=  6.0 → J=4.6137
+  grid z= -64.2 r= 12.0 → J=4.4481
+  grid z= -64.2 r= 18.0 → J=4.6075
+  grid z= -64.2 r= 24.0 → J=5.0233
+  grid z= -64.2 r= 30.0 → J=4.9598
+  grid z= -37.3 r=  6.0 → J=4.4894
+  grid z= -37.3 r= 12.0 → J=4.4404
+  grid z= -37.3 r= 18.0 → J=4.4675
+  grid z= -37.3 r= 24.0 → J=4.5886
+  grid z= -37.3 r= 30.0 → J=4.9811
+  grid z= -10.4 r=  6.0 → J=4.1976
+  grid z= -10.4 r= 12.0 → J=4.2462
+  grid z= -10.4 r= 18.0 → J=4.3999
+  grid z= -10.4 r= 24.0 → J=4.6394
+  grid z= -10.4 r= 30.0 → J=4.7061
+  grid z=  16.5 r=  6.0 → J=4.4221
+  grid z=  16.5 r= 12.0 → J=4.2756
+  grid z=  16.5 r= 18.0 → J=4.1722  ★
+  grid z=  16.5 r= 24.0 → J=4.3509
+  grid z=  16.5 r= 30.0 → J=4.6389
+  grid z=  43.4 r=  6.0 → J=4.3461
+  grid z=  43.4 r= 12.0 → J=4.2434
+  grid z=  43.4 r= 18.0 → J=4.5276
+  grid z=  43.4 r= 24.0 → J=4.4440
+  grid z=  43.4 r= 30.0 → J=4.5478
+  refining (Nelder–Mead)…
+  refined → z=17.3mm r=17.5mm J=4.0931
+  → lateral=(4.2,74.9)mm[pinned]  z=17.3mm  r=17.5mm  depth=3.3mm  Q=5122W/m³  Upper Outer
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106.msh'...
+Info    : 5 entities
+Info    : 152406 nodes
+Info    : [  0%] Reading nodes                                                                                Info    : [ 10%] Reading nodes                                                                                Info    : [ 20%] Reading nodes                                                                                Info    : [ 30%] Reading nodes                                                                                Info    : [ 40%] Reading nodes                                                                                Info    : [ 50%] Reading nodes                                                                                Info    : [ 60%] Reading nodes                                                                                Info    : [ 70%] Reading nodes                                                                                Info    : [ 80%] Reading nodes                                                                                Info    : [ 90%] Reading nodes                                                                                                                                                                Info    : 879184 elements
+Info    : [  0%] Reading elements                                                                                Info    : [ 10%] Reading elements                                                                                Info    : [ 20%] Reading elements                                                                                Info    : [ 30%] Reading elements                                                                                Info    : [ 40%] Reading elements                                                                                Info    : [ 50%] Reading elements                                                                                Info    : [ 60%] Reading elements                                                                                Info    : [ 70%] Reading elements                                                                                Info    : [ 80%] Reading elements                                                                                Info    : [ 90%] Reading elements                                                                                                                                                                Info    : 2 parametrizations
+Info    : [  0%] Processing parametrizations                                                                                Info    : [ 10%] Processing parametrizations                                                                                Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106.msh'
+  FEA: 4.519°C → HIGH_RESIDUAL
+FEA-vs-IR plot saved → /mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106_fea_vs_ir.html
+  ✓ Patient_106 in 97.4 min → appended to /mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/pinn_fea_results.csv
+
+════════════════════════════════════════════════════════════
+[5/122] Patient_107 (benign)  idx=4
+════════════════════════════════════════════════════════════
+Extracting volume for Patient_107 (benign) …
+  calibrated breast_radius_mm: 152.7 mm (mask 92px wide, default was 70.0mm)
+  largest component: 27,366 verts, 54,728 faces
+  after repair     : watertight=True
+  laplacian smooth : 20 iters
+  T_measured: 21.4–33.7°C
+STL saved → /mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_107/Patient_107.stl
+  surface split: 3526 chest-wall / 23840 skin vertices
+  hot-spot pin: lateral=(75.6, 0.3)mm  (2384 verts, top 10%)
+  grid z= -81.5 r=  6.0 → J=6.6805  ★
+  grid z= -81.5 r= 12.0 → J=6.4112  ★
+  grid z= -81.5 r= 18.0 → J=6.6174
+  grid z= -81.5 r= 24.0 → J=6.7168
+  grid z= -81.5 r= 30.0 → J=6.6053
+  grid z= -63.4 r=  6.0 → J=6.6320
+  grid z= -63.4 r= 12.0 → J=6.4917
+  grid z= -63.4 r= 18.0 → J=6.5134
+  grid z= -63.4 r= 24.0 → J=5.7780  ★
+  grid z= -63.4 r= 30.0 → J=6.1549
+  grid z= -45.4 r=  6.0 → J=6.0608
+  grid z= -45.4 r= 12.0 → J=6.2020
+  grid z= -45.4 r= 18.0 → J=5.6436  ★
+  grid z= -45.4 r= 24.0 → J=6.1824
+  grid z= -45.4 r= 30.0 → J=6.0671
+  grid z= -27.3 r=  6.0 → J=6.5983
+  grid z= -27.3 r= 12.0 → J=5.9642
+  grid z= -27.3 r= 18.0 → J=5.9708
+  grid z= -27.3 r= 24.0 → J=6.0224
+  grid z= -27.3 r= 30.0 → J=5.9441
+  grid z=  -9.3 r=  6.0 → J=6.5930
+  grid z=  -9.3 r= 12.0 → J=5.9064
+  grid z=  -9.3 r= 18.0 → J=6.4896
+  grid z=  -9.3 r= 24.0 → J=5.3572  ★
+  grid z=  -9.3 r= 30.0 → J=6.1482
+  grid z=   8.7 r=  6.0 → J=6.5532
+  grid z=   8.7 r= 12.0 → J=6.2780
+  grid z=   8.7 r= 18.0 → J=6.0231
+  grid z=   8.7 r= 24.0 → J=5.9260
+  grid z=   8.7 r= 30.0 → J=5.6600
+  refining (Nelder–Mead)…
+  refined → z=-9.3mm r=24.0mm J=5.3572
+  → lateral=(75.6,0.3)mm[pinned]  z=-9.3mm  r=24.0mm  depth=12.4mm  Q=4165W/m³  Upper Outer
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_107/Patient_107.msh'...
+Info    : 5 entities
+Info    : 83093 nodes
+Info    : 477344 elements
+Info    : [  0%] Reading elements                                                                                Info    : [ 10%] Reading elements                                                                                Info    : [ 20%] Reading elements                                                                                Info    : [ 30%] Reading elements                                                                                Info    : [ 40%] Reading elements                                                                                Info    : [ 50%] Reading elements                                                                                Info    : [ 60%] Reading elements                                                                                Info    : [ 70%] Reading elements                                                                                Info    : [ 80%] Reading elements                                                                                Info    : [ 90%] Reading elements                                                                                                                                                                Info    : 2 parametrizations
+Info    : [  0%] Processing parametrizations                                                                                Info    : [ 10%] Processing parametrizations                                                                                Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_107/Patient_107.msh'
+  FEA: 4.731°C → HIGH_RESIDUAL
+FEA-vs-IR plot saved → /mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_107_fea_vs_ir.html
+  ✓ Patient_107 in 96.0 min → appended to /mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/pinn_fea_results.csv
+
+════════════════════════════════════════════════════════════
+[6/122] Patient_108 (benign)  idx=5
+════════════════════════════════════════════════════════════
+Extracting volume for Patient_108 (benign) …
+  calibrated breast_radius_mm: 147.8 mm (mask 89px wide, default was 70.0mm)
+  largest component: 31,138 verts, 62,272 faces
+  after repair     : watertight=True
+  laplacian smooth : 20 iters
+  T_measured: 20.8–32.3°C
+STL saved → /mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_108/Patient_108.stl
+  surface split: 2120 chest-wall / 29018 skin vertices
+  hot-spot pin: lateral=(17.7, 20.3)mm  (2902 verts, top 10%)
+  grid z= -82.4 r=  6.0 → J=6.2934  ★
+  grid z= -82.4 r= 12.0 → J=6.2639  ★
+  grid z= -82.4 r= 18.0 → J=6.1711  ★
+  grid z= -82.4 r= 24.0 → J=5.6044  ★
+  grid z= -82.4 r= 30.0 → J=6.2506
+  grid z= -60.5 r=  6.0 → J=5.9648
+  grid z= -60.5 r= 12.0 → J=5.9998
+  grid z= -60.5 r= 18.0 → J=6.2110
+  grid z= -60.5 r= 24.0 → J=6.2156
+  grid z= -60.5 r= 30.0 → J=6.4134
+  grid z= -38.6 r=  6.0 → J=5.9397
+  grid z= -38.6 r= 12.0 → J=6.2620
+  grid z= -38.6 r= 18.0 → J=6.2073
+  grid z= -38.6 r= 24.0 → J=6.2180
+  grid z= -38.6 r= 30.0 → J=6.4295
+  grid z= -16.8 r=  6.0 → J=5.6836
+  grid z= -16.8 r= 12.0 → J=6.2211
+  grid z= -16.8 r= 18.0 → J=6.2517
+  grid z= -16.8 r= 24.0 → J=6.2528
+  grid z= -16.8 r= 30.0 → J=6.5965
+  grid z=   5.1 r=  6.0 → J=6.1464
+  grid z=   5.1 r= 12.0 → J=5.8496
+  grid z=   5.1 r= 18.0 → J=6.2309
+  grid z=   5.1 r= 24.0 → J=6.0869
+  grid z=   5.1 r= 30.0 → J=5.9571
+  grid z=  27.0 r=  6.0 → J=5.7609
+  grid z=  27.0 r= 12.0 → J=5.9154
+  grid z=  27.0 r= 18.0 → J=5.9042
+  grid z=  27.0 r= 24.0 → J=6.1248
+  grid z=  27.0 r= 30.0 → J=6.5809
+  refining (Nelder–Mead)…
+  refined → z=-82.4mm r=24.0mm J=5.6044
+  → lateral=(17.7,20.3)mm[pinned]  z=-82.4mm  r=24.0mm  depth=12.2mm  Q=4165W/m³  Upper Outer
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_108/Patient_108.msh'...
+Info    : 5 entities
+Info    : 92565 nodes
+Info    : 531026 elements
+Info    : [  0%] Reading elements                                                                                Info    : [ 10%] Reading elements                                                                                Info    : [ 20%] Reading elements                                                                                Info    : [ 30%] Reading elements                                                                                Info    : [ 40%] Reading elements                                                                                Info    : [ 50%] Reading elements                                                                                Info    : [ 60%] Reading elements                                                                                Info    : [ 70%] Reading elements                                                                                Info    : [ 80%] Reading elements                                                                                Info    : [ 90%] Reading elements                                                                                                                                                                Info    : 2 parametrizations
+Info    : [  0%] Processing parametrizations                                                                                Info    : [ 10%] Processing parametrizations                                                                                Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_108/Patient_108.msh'
+  FEA: 5.247°C → HIGH_RESIDUAL
+FEA-vs-IR plot saved → /mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_108_fea_vs_ir.html
+  ✓ Patient_108 in 100.2 min → appended to /mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/pinn_fea_results.csv
+
+════════════════════════════════════════════════════════════
+[7/122] Patient_110 (benign)  idx=6
+════════════════════════════════════════════════════════════
+Extracting volume for Patient_110 (benign) …
+  calibrated breast_radius_mm: 124.5 mm (mask 75px wide, default was 70.0mm)
+  largest component: 26,174 verts, 52,344 faces
+  after repair     : watertight=True
+  laplacian smooth : 20 iters
+  T_measured: 21.4–33.3°C
+STL saved → /mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_110/Patient_110.stl
+  surface split: 2806 chest-wall / 23368 skin vertices
+  hot-spot pin: lateral=(12.6, 25.8)mm  (2337 verts, top 10%)
+  grid z= -69.6 r=  6.0 → J=6.1789  ★
+  grid z= -69.6 r= 12.0 → J=6.0078  ★
+  grid z= -69.6 r= 18.0 → J=6.1593
+  grid z= -69.6 r= 24.0 → J=6.3171
+  grid z= -69.6 r= 30.0 → J=6.3473
+  grid z= -55.5 r=  6.0 → J=5.6044  ★
+  grid z= -55.5 r= 12.0 → J=5.8807
+  grid z= -55.5 r= 18.0 → J=6.2832
+  grid z= -55.5 r= 24.0 → J=4.2045  ★
+  grid z= -55.5 r= 30.0 → J=6.4598
+  grid z= -41.4 r=  6.0 → J=5.6740
+  grid z= -41.4 r= 12.0 → J=6.1896
+  grid z= -41.4 r= 18.0 → J=6.0794
+  grid z= -41.4 r= 24.0 → J=6.5083
+  grid z= -41.4 r= 30.0 → J=4.9226
+  grid z= -27.2 r=  6.0 → J=5.3835
+  grid z= -27.2 r= 12.0 → J=6.3338
+  grid z= -27.2 r= 18.0 → J=3.8928  ★
+  grid z= -27.2 r= 24.0 → J=6.2068
+  grid z= -27.2 r= 30.0 → J=4.7268
+  grid z= -13.1 r=  6.0 → J=6.2532
+  grid z= -13.1 r= 12.0 → J=6.3552
+  grid z= -13.1 r= 18.0 → J=5.9185
+  grid z= -13.1 r= 24.0 → J=5.6164
+  grid z= -13.1 r= 30.0 → J=4.7148
+  grid z=   1.0 r=  6.0 → J=4.8351
+  grid z=   1.0 r= 12.0 → J=6.2637
+  grid z=   1.0 r= 18.0 → J=5.9863
+  grid z=   1.0 r= 24.0 → J=5.7915
+  grid z=   1.0 r= 30.0 → J=6.3372
+  refining (Nelder–Mead)…
+  refined → z=-27.2mm r=18.0mm J=3.8928
+  → lateral=(12.6,25.8)mm[pinned]  z=-27.2mm  r=18.0mm  depth=40.0mm  Q=5029W/m³  Upper Outer
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_110/Patient_110.msh'...
+Info    : 5 entities
+Info    : 46210 nodes
+Info    : 263069 elements
+Info    : [  0%] Reading elements                                                                                Info    : [ 10%] Reading elements                                                                                Info    : [ 20%] Reading elements                                                                                Info    : [ 30%] Reading elements                                                                                Info    : [ 40%] Reading elements                                                                                Info    : [ 50%] Reading elements                                                                                Info    : [ 60%] Reading elements                                                                                Info    : [ 70%] Reading elements                                                                                Info    : [ 80%] Reading elements                                                                                Info    : [ 90%] Reading elements                                                                                                                                                                Info    : 2 parametrizations
+Info    : [  0%] Processing parametrizations                                                                                Info    : [ 10%] Processing parametrizations                                                                                Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_110/Patient_110.msh'
+  FEA: 5.169°C → HIGH_RESIDUAL
+FEA-vs-IR plot saved → /mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_110_fea_vs_ir.html
+  ✓ Patient_110 in 97.6 min → appended to /mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/pinn_fea_results.csv
+
+════════════════════════════════════════════════════════════
+[8/122] Patient_111 (benign)  idx=7
+════════════════════════════════════════════════════════════
+Extracting volume for Patient_111 (benign) …
+  calibrated breast_radius_mm: 166.0 mm (mask 100px wide, default was 70.0mm)
+  largest component: 33,798 verts, 67,592 faces
+  after repair     : watertight=True
+  laplacian smooth : 20 iters
+  T_measured: 21.7–33.2°C
+STL saved → /mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_111/Patient_111.stl
+  surface split: 2245 chest-wall / 31553 skin vertices
+  hot-spot pin: lateral=(20.3, 14.4)mm  (3156 verts, top 10%)
+  grid z=-103.2 r=  6.0 → J=6.7262  ★
+  grid z=-103.2 r= 12.0 → J=6.6364  ★
+  grid z=-103.2 r= 18.0 → J=6.9353
+  grid z=-103.2 r= 24.0 → J=6.9872
+  grid z=-103.2 r= 30.0 → J=7.1525
+  grid z= -80.3 r=  6.0 → J=6.5039  ★
+  grid z= -80.3 r= 12.0 → J=6.6835
+  grid z= -80.3 r= 18.0 → J=6.2780  ★
+  grid z= -80.3 r= 24.0 → J=6.7596
+  grid z= -80.3 r= 30.0 → J=7.0069
+  grid z= -57.3 r=  6.0 → J=6.5413
+  grid z= -57.3 r= 12.0 → J=6.4908
+  grid z= -57.3 r= 18.0 → J=6.6983
+  grid z= -57.3 r= 24.0 → J=6.6862
+  grid z= -57.3 r= 30.0 → J=6.9158
+  grid z= -34.4 r=  6.0 → J=6.4871
+  grid z= -34.4 r= 12.0 → J=6.3720
+  grid z= -34.4 r= 18.0 → J=6.6281
+  grid z= -34.4 r= 24.0 → J=6.6173
+  grid z= -34.4 r= 30.0 → J=6.7394
+  grid z= -11.4 r=  6.0 → J=6.4647
+  grid z= -11.4 r= 12.0 → J=6.5988
+  grid z= -11.4 r= 18.0 → J=6.5328
+  grid z= -11.4 r= 24.0 → J=6.5346
+  grid z= -11.4 r= 30.0 → J=6.7520
+  grid z=  11.5 r=  6.0 → J=6.1672  ★
+  grid z=  11.5 r= 12.0 → J=6.2466
+  grid z=  11.5 r= 18.0 → J=6.5031
+  grid z=  11.5 r= 24.0 → J=6.5207
+  grid z=  11.5 r= 30.0 → J=6.7986
+  refining (Nelder–Mead)…
