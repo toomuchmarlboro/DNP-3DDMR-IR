@@ -28,13 +28,13 @@ The sign convention above is used throughout the repository and matches the pape
  TherMAM-NeRF (thermal neural field)  ──►  watertight geometry (STL)  +  per-vertex surface temperature
         │
         ▼
- PINN v3 inverse bioheat (forward-matching)  ──►  tumour position, depth, size
+ FEM-FEM inverse bioheat (FEniCSx grid search + Nelder-Mead)  ──►  tumour depth z_t, radius r_t
         │
         ▼
- FEM (FEniCSx) forward verification + interactive 3D viewers
+ Lateral pin from IR hot-spot centroid  ──►  tumour lateral (x, y) position
 ```
 
-The **active** components are: preprocessing + U-Net (masks), TherMAM-NeRF (reconstruction), and the v3 forward-matching PINN (inverse bioheat). Everything under "Previous Work" is retained for reference but is **no longer on the active path** — each entry states why.
+The **active** components are: preprocessing + U-Net (masks), TherMAM-NeRF (reconstruction), and the FEM-FEM inverse bioheat (`mukhmetov_recover.py`, `run_cohort.py`). PINN variants (v1, v3, Mukhmetov-PINN) are under "Previous Work" as documented negative results — each entry explains why it was superseded.
 
 ---
 
@@ -72,53 +72,70 @@ Reconstruction has progressed from mask-based occupancy (BreastNet3D, see Previo
 
 ---
 
-## Current Work: PINN v3 Inverse Bioheat (Forward-Matching)
+## Current Work: FEM-FEM Inverse Bioheat
 
 The goal is a **screening** estimate of a tumour's **position, depth, and size** inside the reconstructed breast, by coupling the NeRF surface temperature to the **Pennes bioheat equation**:
 
 $$ \nabla\cdot(k\nabla T) + \omega_b c_b (T_a - T) + Q_m + Q_{tumour} = 0 $$
 
-The current implementation is [Thermamnerf_PINN_v3.ipynb](TherMAM-NeRF/Thermamnerf_PINN_v3.ipynb).
+The current implementation is [mukhmetov_recover.py](TherMAM-NeRF/mukhmetov_recover.py) (synthetic validation) and [run_cohort.py](TherMAM-NeRF/run_cohort.py) (real cohort). Full write-up: [Docs/Stage4_InverseBioheat.md](Docs/Stage4_InverseBioheat.md).
 
-### Why v3 differs from earlier inverse PINNs (a documented negative result)
+### Why PINN variants failed (documented negative results)
 
-Earlier inverse PINNs (including the legacy [PINN_Pipeline.py](UNET_Segmentation/PINNpdeSolver/PINN_Pipeline.py)) tried to learn **all five** tumour parameters jointly — centre $(x_t,y_t,z_t)$, radius $r_t$, **and** peak metabolic heat $Q_{max}$ — by minimising the PDE residual of a free-form temperature MLP. On real DMR-IR data this **does not work**, for two now-understood reasons:
+Three PINN formulations were tried before reaching the current approach:
 
-1. **Magnitude is unidentifiable from the surface.** Bezerra et al. (2013) show via sensitivity analysis that the tumour heat *magnitude* has near-zero surface sensitivity. Our runs confirmed it — $Q_{max}$ stayed frozen at its initialisation for both benign and malignant patients. (Mukhmetov et al. 2025, the closest published method, *fixes* the magnitude and trains only geometry; their 0.7–5 % accuracy is on synthetic ANSYS data, and their single real patient had 18.7 % radius error with unverifiable depth.)
-2. **A free source escapes to the boundary.** The tumour heat source is non-negative ($Q_{tumour}\ge 0$), so it cannot cancel the positive interior PDE residual, but it *can* exploit the negative residual in the boundary layer next to the skin. A source left free to minimise the residual flees to the surface and collapses — observed in every free-source variant we tried (free 5-param, geometry-only, and lateral-pinned).
+1. **PINN v1 (free 5-param):** tumour source escapes to skin boundary; $Q_{max}$ frozen at init (unidentifiable from surface — Bezerra et al. 2013).
+2. **PINN v3 (forward-matching):** 6-layer Tanh MLP saturates at **7.3 °C BC-fitting RMSE** on synthetic data. Tumour signal is 0.67 °C → SNR 0.09:1. Cost surface flat even on ideal self-consistent data; planted tumour unrecoverable.
+3. **Mukhmetov-PINN (Dirichlet-skin):** same Tanh saturation floor; tumour gradient invisible.
 
-### The v3 formulation (the fix)
+All three share the same root cause: a deep Tanh network cannot represent the bioheat field accurately enough for a 0.67 °C tumour perturbation to be detected.
 
-v3 treats the PINN as a **forward** solver used inside a low-dimensional inverse search:
+### The FEM-FEM fix
 
-* **Magnitude is fixed by physiology**, not learned — tied to radius via the Gautherie tumour doubling-time law ($Q_m\tau = C$), matching Bezerra's Table 1 (≈65 400 W/m³ at 1 cm, ≈7 800 W/m³ at 2.2 cm).
-* **Lateral position is pinned** to the centroid of the NeRF IR hot-spot — the one quantity surface thermography determines robustly.
-* For each candidate **(depth, radius)** the PINN solves the *forward* BVP — interior Pennes + chest-wall Dirichlet $T=37^\circ$C + convective Robin skin ($h_{conv}=10$, $T_{air}=20^\circ$C) — and **predicts** the skin temperature (never pinned to the data).
-* The inverse **searches depth × radius** (coarse grid → Nelder–Mead refine, persistent MLP warm-started across candidates) for the prediction whose **pattern** best matches the NeRF surface IR. The match is mean-centred so the absolute model-mismatch (imperfect $h/T_{air}$) does not dominate the shape fit that encodes depth.
+Replace the PINN with **FEniCSx itself** as the forward model inside the optimiser:
 
-Because the source is **prescribed, not free**, it cannot escape to the boundary — the failure mode of every earlier version is structurally removed.
+| | PINN (all variants) | FEM-FEM |
+|---|---|---|
+| Forward model noise | 7.3 °C (Tanh saturation) | ~0.001 °C (FEM precision) |
+| Tumour signal | 0.67 °C | 0.67 °C |
+| SNR | **0.09:1 — undetectable** | **670:1 — trivial** |
 
-### FEM Forward Verification
+### Algorithm
 
-An independent **dolfinx (FEniCSx)** + **Gmsh** finite-element forward solve of the same BVP cross-checks the recovered tumour against the NeRF surface IR. FEA here is a *verification*, not part of the inverse loop.
+* **Fixed:** lateral $(x_0,y_0)$ from IR hot-spot centroid (top 10 % warmest vertices); magnitude $Q_0(r_t)$ from Gautherie law.
+* **Optimised:** $(z_t, r_t)$ only (2 DOF).
+* **Step 1:** coarse 5×4 grid = 20 FEM solves; cost = skin-only MSE vs target surface T.
+* **Step 2:** Nelder-Mead refine (≤30 iterations) from grid best.
+* **Mesh:** generated once from TherMAM-NeRF STL via Gmsh, reused across all evaluations.
 
-### Outputs (per patient, under `TherMAM-NeRF/PINNpdeSolver/results/`)
+### Synthetic validation (Patient_1, in progress)
 
-* `{Patient_ID}/{Patient_ID}.stl` / `.msh` — watertight geometry + tetrahedral mesh
-* `{Patient_ID}/{Patient_ID}_pinn.pth` — trained forward-solver weights
-* `{Patient_ID}_loss_convergence.png` — the **cost surface $J(\text{depth},\text{radius})$**; a clear interior minimum means depth/size are identified, a flat surface means the data does not constrain depth (reported honestly as a limitation)
-* `{Patient_ID}_3d_thermal.html`, `_fea_vs_ir.html`, `_tumor_localisation.html` — interactive 3D viewers
-* Per-patient `position, depth, radius, anatomical quadrant`
+| Planted z (mm) | r (mm) | Recovered z (mm) | Depth err | Radius err |
+|---|---|---|---|---|
+| −61.9 | 8 | −62.0 | **0.2 %** | **0.1 %** |
+| −61.9 | 14 | −62.0 | **0.1 %** | **0.1 %** |
+| 7 more scenarios in progress … | | | | |
+
+Cost reaches machine zero — FEniCSx recovers its own output exactly.
+
+### Honest scope
+
+The synthetic SNR is 670:1 → sub-0.3 % error. On **real DMR-IR data** the model-mismatch floor is 4.5–5.6 °C (real tissue heterogeneity vs homogeneous FEM), larger than the 0.67 °C tumour signal. Real-patient depth/radius estimates cannot be validated without co-registered MRI/CT — the same limitation Mukhmetov et al. (2025) report (18.67 % radius error, depth unverifiable, single real patient). Lateral position from the IR hot-spot centroid and per-patient FEA residuals remain reportable for all 122 patients.
 
 ### Running
 
 ```bash
 conda activate bioheat
-# open and run top-to-bottom:
-#   TherMAM-NeRF/Thermamnerf_PINN_v3.ipynb
+cd TherMAM-NeRF
+python -u mukhmetov_recover.py --idx 0 | tee mukhmetov_syn.log   # synthetic validation
+python -u run_cohort.py --method mukhmetov --all                  # real cohort
 ```
 
-The notebook loads the trained TherMAM-NeRF checkpoint, reconstructs each patient's geometry + surface IR, runs the forward-matching inverse, and writes the artifacts above. Expect ~30 warm-started forward solves per patient — a few minutes each on the RTX 2080 Ti.
+### Outputs (under `TherMAM-NeRF/PINNpdeSolver/results/`)
+
+* `mukhmetov_recovery.csv` / `mukhmetov_recovery.png` — 9-scenario synthetic table + scatter plot
+* `{Patient_ID}/{Patient_ID}_syn.stl` / `.msh` — patient surface + tetrahedral mesh
+* `cohort_mukhmetov.csv` — per-patient `x_t_mm, y_t_mm, z_hat_mm, r_hat_mm, cost, fea_residual`
 
 ---
 
@@ -157,11 +174,21 @@ A convolutional variational autoencoder for thermal images with latent sampling 
 
 **Why superseded:** BreastNet3D reconstructs *geometry from silhouettes only* and discards the IR signal during reconstruction; its temperature was a post-hoc projection, not a learned field. The bioheat stage needs a jointly-learned surface temperature, so reconstruction moved to **TherMAM-NeRF**. BreastNet3D remains the reference for the occupancy/projection formulation and the asymmetry features.
 
-### Legacy inverse PINN — [PINN_Pipeline.py](UNET_Segmentation/PINNpdeSolver/PINN_Pipeline.py)
+### Legacy inverse PINN v1 — [PINN_Pipeline.py](UNET_Segmentation/PINNpdeSolver/PINN_Pipeline.py)
 
 A multi-start inverse PINN that tried to estimate $(x_t, r_t, Q_{max})$ jointly with an Adam→L-BFGS scheme, plus dolfinx FEM verification.
 
-**Why superseded:** it learns the tumour **magnitude** $Q_{max}$ as a free parameter — the quantity proven unidentifiable from surface data (see "Why v3 differs," above). It is replaced by the forward-matching v3, which fixes magnitude and estimates only geometry. The FEM verification idea carried forward into v3.
+**Why superseded:** learns tumour magnitude $Q_{max}$ as a free parameter — unidentifiable from surface data (Bezerra et al. 2013, confirmed on DMR-IR). Free source also escapes to skin boundary. Replaced by PINN v3.
+
+### Forward-matching PINN v3 — [Thermamnerf_PINN_v3.ipynb](TherMAM-NeRF/Thermamnerf_PINN_v3.ipynb)
+
+PINN used as a *forward* solver inside a depth-radius grid search. Fixed magnitude (Gautherie), lateral pinned to IR hot-spot, Nelder-Mead minimising mean-centred skin pattern mismatch.
+
+**Why superseded:** 6-layer Tanh MLP saturates at 7.3 °C BC-fitting RMSE on synthetic data. Tumour signal 0.67 °C → SNR 0.09:1. Cost surface nearly flat even on self-consistent synthetic data; planted tumour unrecoverable. Replaced by FEM-FEM inverse.
+
+### Mukhmetov-PINN — [run_cohort.py](TherMAM-NeRF/run_cohort.py) `--method mukhmetov` (PINN variant)
+
+Dirichlet skin BC, single Adam optimisation of $(z_t, r_t)$, 70 % tumour-biased collocation resampling. Addressed collocation sparsity but not Tanh saturation. Same 7.3 °C floor, same 0.09:1 SNR. Replaced by FEM-FEM inverse.
 
 ---
 
@@ -219,7 +246,7 @@ To run the **current** pipeline end-to-end:
 
 1. Run [watershed_background_removal.py](watershed_background_removal.py) for background-cleaned inputs, and generate breast masks with the frozen U-Net ([UNET_Segmentation_newest.ipynb](<UNET_Segmentation/Masking and Segmentation/UNET_Segmentation_newest.ipynb>)).
 2. Train / load the thermal neural field with [thermamnerf_v2.9.py](TherMAM-NeRF/thermamnerf_v2.9.py) to obtain geometry + surface temperature.
-3. Run [Thermamnerf_PINN_v3.ipynb](TherMAM-NeRF/Thermamnerf_PINN_v3.ipynb) top-to-bottom to reconstruct each patient and estimate tumour position/depth/size, with FEM verification and 3D viewers.
+3. Run the FEM-FEM inverse: `python -u mukhmetov_recover.py --idx 0` for synthetic validation (9 scenarios, one patient), then `python -u run_cohort.py --method mukhmetov --all` for the real 122-patient cohort.
 
 To understand the **history / methodology** (not the active path):
 
@@ -252,7 +279,8 @@ Dataset verification is captured in [datasettest.ipynb](<Previous Works (VAE, le
 ## Repository Files Worth Reading First
 
 **Current path:**
-* [Thermamnerf_PINN_v3.ipynb](TherMAM-NeRF/Thermamnerf_PINN_v3.ipynb) — inverse bioheat (forward-matching)
+* [mukhmetov_recover.py](TherMAM-NeRF/mukhmetov_recover.py) — FEM-FEM inverse bioheat, synthetic validation
+* [run_cohort.py](TherMAM-NeRF/run_cohort.py) — real patient cohort runner (`--method mukhmetov`)
 * [thermamnerf_v2.9.py](TherMAM-NeRF/thermamnerf_v2.9.py) — thermal neural field reconstruction
 * [UNET_Segmentation_newest.ipynb](<UNET_Segmentation/Masking and Segmentation/UNET_Segmentation_newest.ipynb>) — breast-region segmentation (foundational)
 

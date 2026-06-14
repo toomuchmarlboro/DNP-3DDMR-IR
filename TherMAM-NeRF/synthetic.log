@@ -21,3 +21,125 @@ Extracting volume for Patient_1 (benign) …
   T_measured: 21.9–33.5°C
 
 === PLANT z=-22.1 r=10.0 ===
+  planted: lateral=(46.7,24.5) z=-22.1 r=10.0 depth=26.6 noise=0%  skin T∈[21.2,31.9]°C
+  surface split: 2335 chest-wall / 29069 skin vertices
+  hot-spot pin: lateral=(59.0, 82.7)mm  (2907 verts, top 10%)
+  grid z=-101.8 r=  6.0 → J=0.0160  ★
+  grid z=-101.8 r= 12.0 → J=0.0680
+  grid z=-101.8 r= 18.0 → J=0.0178
+  grid z=-101.8 r= 24.0 → J=0.0226
+  grid z=-101.8 r= 30.0 → J=0.0194
+  grid z= -79.5 r=  6.0 → J=0.0210
+  grid z= -79.5 r= 12.0 → J=0.0242
+  grid z= -79.5 r= 18.0 → J=0.0189
+  grid z= -79.5 r= 24.0 → J=0.0406
+  grid z= -79.5 r= 30.0 → J=0.0749
+  grid z= -57.1 r=  6.0 → J=0.0088  ★
+  grid z= -57.1 r= 12.0 → J=0.0131
+  grid z= -57.1 r= 18.0 → J=0.0273
+  grid z= -57.1 r= 24.0 → J=0.0925
+  grid z= -57.1 r= 30.0 → J=0.1233
+  grid z= -34.8 r=  6.0 → J=0.0098
+  grid z= -34.8 r= 12.0 → J=0.0227
+  grid z= -34.8 r= 18.0 → J=0.0396
+  grid z= -34.8 r= 24.0 → J=0.0636
+  grid z= -34.8 r= 30.0 → J=0.1200
+  grid z= -12.5 r=  6.0 → J=0.0302
+  grid z= -12.5 r= 12.0 → J=0.0165
+  grid z= -12.5 r= 18.0 → J=0.0861
+  grid z= -12.5 r= 24.0 → J=0.0364
+  grid z= -12.5 r= 30.0 → J=0.0678
+  grid z=   9.8 r=  6.0 → J=0.0186
+  grid z=   9.8 r= 12.0 → J=0.0139
+  grid z=   9.8 r= 18.0 → J=0.0292
+  grid z=   9.8 r= 24.0 → J=0.0184
+  grid z=   9.8 r= 30.0 → J=0.0278
+  refining (Nelder–Mead)…
+  refined → z=-57.1mm r=6.0mm J=0.0088
+  → lateral=(59.0,82.7)mm[pinned]  z=-57.1mm  r=6.0mm  depth=35.5mm  Q=24144W/m³  Upper Outer
+  RECOVERED z=-57.1 r=6.0 depth=35.5  (planted depth=26.6)
+
+=== PLANT z=-46.0 r=15.0 ===
+  planted: lateral=(46.7,24.5) z=-46.0 r=15.0 depth=48.1 noise=0%  skin T∈[21.2,31.8]°C
+  surface split: 2335 chest-wall / 29069 skin vertices
+  hot-spot pin: lateral=(59.5, 82.9)mm  (2907 verts, top 10%)
+  grid z=-101.8 r=  6.0 → J=0.0185  ★
+  grid z=-101.8 r= 12.0 → J=0.0340
+  grid z=-101.8 r= 18.0 → J=0.0496
+  grid z=-101.8 r= 24.0 → J=0.0203
+  grid z=-101.8 r= 30.0 → J=0.0476
+  grid z= -79.5 r=  6.0 → J=0.0279
+  grid z= -79.5 r= 12.0 → J=0.0322
+  grid z= -79.5 r= 18.0 → J=0.0212
+  grid z= -79.5 r= 24.0 → J=0.0514
+  grid z= -79.5 r= 30.0 → J=0.0517
+  grid z= -57.1 r=  6.0 → J=0.0157  ★
+  grid z= -57.1 r= 12.0 → J=0.0104  ★
+  grid z= -57.1 r= 18.0 → J=0.0200
+  grid z= -57.1 r= 24.0 → J=0.0440
+  grid z= -57.1 r= 30.0 → J=0.1066
+  grid z= -34.8 r=  6.0 → J=0.0245
+  grid z= -34.8 r= 12.0 → J=0.0273
+  grid z= -34.8 r= 18.0 → J=0.0464
+  grid z= -34.8 r= 24.0 → J=0.0540
+  grid z= -34.8 r= 30.0 → J=0.1177
+  grid z= -12.5 r=  6.0 → J=0.0334
+  grid z= -12.5 r= 12.0 → J=0.0233
+  grid z= -12.5 r= 18.0 → J=0.0267
+  grid z= -12.5 r= 24.0 → J=0.0624
+  grid z= -12.5 r= 30.0 → J=0.0752
+  grid z=   9.8 r=  6.0 → J=0.0260
+  grid z=   9.8 r= 12.0 → J=0.0179
+  grid z=   9.8 r= 18.0 → J=0.0398
+  grid z=   9.8 r= 24.0 → J=0.0264
+  grid z=   9.8 r= 30.0 → J=0.0478
+  refining (Nelder–Mead)…
+  refined → z=-57.1mm r=12.0mm J=0.0104
+  → lateral=(59.5,82.9)mm[pinned]  z=-57.1mm  r=12.0mm  depth=35.3mm  Q=7105W/m³  Upper Outer
+  RECOVERED z=-57.1 r=12.0 depth=35.3  (planted depth=48.1)
+
+=== PLANT z=-69.9 r=20.0 ===
+  planted: lateral=(46.7,24.5) z=-69.9 r=20.0 depth=31.5 noise=0%  skin T∈[21.3,31.9]°C
+  surface split: 2335 chest-wall / 29069 skin vertices
+  hot-spot pin: lateral=(58.9, 80.6)mm  (2907 verts, top 10%)
+  grid z=-101.8 r=  6.0 → J=0.0292  ★
+  grid z=-101.8 r= 12.0 → J=0.0536
+  grid z=-101.8 r= 18.0 → J=0.0528
+  grid z=-101.8 r= 24.0 → J=0.0380
+  grid z=-101.8 r= 30.0 → J=0.1118
+  grid z= -79.5 r=  6.0 → J=0.0225  ★
+  grid z= -79.5 r= 12.0 → J=0.0356
+  grid z= -79.5 r= 18.0 → J=0.0338
+  grid z= -79.5 r= 24.0 → J=0.0443
+  grid z= -79.5 r= 30.0 → J=0.0591
+  grid z= -57.1 r=  6.0 → J=0.0263
+  grid z= -57.1 r= 12.0 → J=0.0219  ★
+  grid z= -57.1 r= 18.0 → J=0.0338
+  grid z= -57.1 r= 24.0 → J=0.0591
+  grid z= -57.1 r= 30.0 → J=0.0936
+  grid z= -34.8 r=  6.0 → J=0.0218  ★
+  grid z= -34.8 r= 12.0 → J=0.0258
+  grid z= -34.8 r= 18.0 → J=0.0361
+  grid z= -34.8 r= 24.0 → J=0.0992
+  grid z= -34.8 r= 30.0 → J=0.1364
+  grid z= -12.5 r=  6.0 → J=0.0462
+  grid z= -12.5 r= 12.0 → J=0.0335
+  grid z= -12.5 r= 18.0 → J=0.0344
+  grid z= -12.5 r= 24.0 → J=0.0432
+  grid z= -12.5 r= 30.0 → J=0.0705
+  grid z=   9.8 r=  6.0 → J=0.0307
+  grid z=   9.8 r= 12.0 → J=0.0265
+  grid z=   9.8 r= 18.0 → J=0.0259
+  grid z=   9.8 r= 24.0 → J=0.0490
+  grid z=   9.8 r= 30.0 → J=0.0330
+  refining (Nelder–Mead)…
+  refined → z=-34.8mm r=6.0mm J=0.0218
+  → lateral=(58.9,80.6)mm[pinned]  z=-34.8mm  r=6.0mm  depth=16.3mm  Q=24144W/m³  Upper Outer
+  RECOVERED z=-34.8 r=6.0 depth=16.3  (planted depth=31.5)
+
+Synthetic recovery summary:
+  planted_depth  recovered_depth  planted_r  recovered_r  lateral_err_mm
+          26.6             35.5       10.0          6.0            59.4
+          48.1             35.3       15.0         12.0            59.7
+          31.5             16.3       20.0          6.0            57.4
+Saved → /mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/synthetic_recovery.png and /mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/synthetic_recovery.csv

@@ -1,148 +1,120 @@
-# Stage 3 — 3DBreastNet: Learned Multi-View Voxel Reconstruction
+# Stage 3 — TherMAM-NeRF: Joint Geometry + Thermal Field Reconstruction
 
-**Source notebook:** `UNET_Segmentation/3DBreastnet/breastnet3d_v5.ipynb`
+**Current source:** `TherMAM-NeRF/thermamnerf_v2.9.py` (training), `TherMAM-NeRF/Thermamnerf_PINN_v3.ipynb` (inference / extraction)
+**Predecessor (superseded):** `UNET_Segmentation/3DBreastnet/breastnet3d_v5.ipynb`
+
+> *Note: this file documents the **current** reconstruction stage (TherMAM-NeRF). The earlier 3DBreastNet approach is retained in §2 as the documented predecessor it replaced. The filename is kept for continuity and may be renamed.*
 
 ---
 
 ## 1. Objective
 
-This stage learns a **direct mapping from five 2D thermal views to a 128³ voxel occupancy grid** representing the 3D breast surface. Rather than relying on classical hand-crafted geometric algorithms (e.g., visual hull intersections or NURBS fitting), it employs a deep encoder–decoder architecture. This network implicitly learns the Bayesian shape prior $P(\mathcal{V} | S_0, \dots, S_4)$ mapping the observed 2D silhouettes to a 3D volumetric field.
+This stage reconstructs, for each patient, a **watertight 3D breast surface** *and* a **continuous surface-temperature field**, from the five aligned infrared views. Unlike a pure shape reconstructor, TherMAM-NeRF learns a single neural field that outputs, at every point in space, both an occupancy density $\sigma$ and a temperature $T$.
 
-The reconstructed 3D volume $\mathbf{V} \in [0,1]^{D \times H \times W}$ serves as:
+The output of this stage is the input contract for the Stage 4 bioheat solver:
 
-1. The **anatomical domain** over which the PINN bioheat solver models the Pennes Bioheat Transfer Equation (Stage 4).
-2. The geometric substrate for **thermal texture mapping** — projecting calibrated temperature data back onto the reconstructed surface.
-
----
-
-## 2. Pipeline Overview and Voxel Representation
-
-The network predicts a discretized scalar field $\mathbf{V}$. Each voxel value $v_{x,y,z} \in [0,1]$ represents the probability of that spatial location being occupied by breast tissue.
-
-```
-  ┌──────────────┐
-  │ 5 Thermal     │
-  │ Views (TIFF)  │
-  └──────┬───────┘
-         │ U-Net (frozen, Stage 2 weights)
-         ▼
-  ┌──────────────┐
-  │ 5 Binary      │
-  │ Masks (256²)  │
-  └──────┬───────┘
-         │ Resize to 128×128, stack → (B, 5, 128, 128)
-         ▼
-  ┌──────────────┐
-  │ Encoder 2D    │  5×128×128 → 1000-d latent
-  └──────┬───────┘
-         ▼
-  ┌──────────────┐
-  │ Decoder 3D    │  1000-d → 1×128×128×128
-  └──────┬───────┘
-         │ Differentiable projection (render_projection)
-         ▼
-  ┌──────────────┐
-  │ 5 Projected   │  Silhouettes compared against GT masks
-  │ Silhouettes   │  via multi-view Dice loss
-  └──────────────┘
-```
+1. A **3D anatomical domain** $\partial\Omega$ over which the Pennes bioheat PDE is posed (skin surface + chest wall).
+2. A **per-vertex surface temperature** $T_{\text{measured}}$ — the boundary data the inverse problem is matched against.
 
 ---
 
-## 3. Model Architecture
+## 2. From 3DBreastNet to TherMAM-NeRF (why the method changed)
 
-The model is a deterministic function $f_\theta: \mathbb{R}^{5 \times H' \times W'} \to [0,1]^{D \times H \times W}$.
+The predecessor, **3DBreastNet** (`breastnet3d_v5`, best validation Dice **0.8427**), learned a $128^3$ occupancy volume from the five **binary masks** alone, supervised by multi-view differentiable-projection (visual-hull) consistency. Temperature was then attached *after the fact* by a Lambertian-weighted projection of the raw thermal images onto the extracted mesh.
 
-### 3.1 Encoder 2D
+This is sufficient for shape, but **not** for bioheat inversion, which needs a *temperature field that is part of the reconstruction*, not a post-hoc paint job:
 
-The encoder acts as an information bottleneck, compressing the spatial relationships of the 5 views into a 1000-dimensional latent vector $\mathbf{z} \in \mathbb{R}^{1000}$. This forces the network to learn a compact, low-dimensional manifold of breast shapes.
+- 3DBreastNet discards the thermal signal during reconstruction — geometry is learned only from silhouettes.
+- Its surface temperature inherits projection seams and occlusion artefacts from the blending step.
 
-### 3.2 Decoder 3D
-
-The decoder expands the latent vector $\mathbf{z}$ back into a full voxel grid using 3D transposed convolutions. 
-
-To encourage the network to carve away empty space rather than building from a solid block, the final convolution's bias $b_f$ is initialised to $-4.0$. Given the sigmoid activation $\sigma(x) = \frac{1}{1 + e^{-x}}$, the initial voxel probabilities prior to learning are $v \approx \sigma(-4.0) \approx 0.018$, representing a near-empty volume.
+**TherMAM-NeRF** instead learns geometry and temperature *jointly* as one continuous field. The bioheat solver then consumes the reconstruction's own temperature output directly. 3DBreastNet remains the reference for the occupancy / visual-hull formulation and the asymmetry features.
 
 ---
 
-## 4. Differentiable Projection — The Volumetric Rendering Equation
+## 3. Architecture
 
-Because we lack ground-truth 3D MRI/CT scans for these patients, the network is trained via **unsupervised 3D discovery**. Supervision is derived entirely from the 2D silhouettes $S_k$ via a differentiable renderer $\mathcal{R}$.
+TherMAM-NeRF is a neural field $f_\Theta:\ \mathbb{R}^3 \to (\sigma, T)$ conditioned on the five input views (~205k parameters total). It has two components.
 
-### 4.1 Rigid Affine Transformation
+### 3.1 Siamese view encoder
 
-Given a viewing angle $\theta_k$, the predicted volume $\mathbf{V}$ is rotated into the camera's frame of reference. The rotation matrix about the vertical $Y$-axis is:
+A single shared 2D CNN $E$ is applied to each view $k$. Its input is the two-channel stack of the normalised thermal image and its U-Net mask, and its output is masked to the breast region:
 
-$$
-\mathbf{R}_{\theta_k} = \begin{pmatrix} \cos\theta_k & 0 & \sin\theta_k & 0 \\ 0 & 1 & 0 & 0 \\ -\sin\theta_k & 0 & \cos\theta_k & 0 \end{pmatrix}
-$$
+$$ F_k = E\big([\,\tilde I_k,\ M_k\,]\big) \odot M_k \in \mathbb{R}^{32 \times H \times W} $$
 
-The rotated volume $\mathbf{V}^{(k)}$ is interpolated using a continuous grid sampling operator:
-$$ \mathbf{V}^{(k)}(\mathbf{p}) = \mathbf{V}(\mathbf{R}_{\theta_k}^{-1} \mathbf{p}) $$
+The encoder is four convolutions (channels $2\to16\to32\to32\to32$) with GroupNorm and ReLU. Sharing weights across views ("Siamese") means a single feature extractor must explain all five viewpoints, which regularises the learned features.
 
-### 4.2 Emission–Absorption Ray Integration
+### 3.2 Positional encoding
 
-To project the 3D density field back to a 2D silhouette, we approximate the Beer-Lambert law of optical absorption. A ray $r_{i,j}$ originating from pixel $(i,j)$ traverses the volume along the depth axis $z$. The probability $O_{i,j}$ that the ray hits tissue (i.e., the pixel belongs to the silhouette) is computed as the complement of the probability that the ray passes completely through empty space:
+A query point $\mathbf{x}\in[-1,1]^3$ is lifted to a high-frequency Fourier feature vector with $L=8$ bands, enabling the MLP to represent sharp geometric and thermal detail:
 
-$$
-O_{i,j}(\theta_k) = 1 - \exp\left(-\sum_{z=1}^{D} \mathbf{V}^{(k)}_{i,j,z} \Delta z\right)
-$$
+$$ \gamma(\mathbf{x}) = \Big[\,\sin(2^{\ell}\pi x_d),\ \cos(2^{\ell}\pi x_d)\,\Big]_{d\in\{x,y,z\},\,\ell=0\dots L-1} \in \mathbb{R}^{6L} $$
 
-Because exponential and summation functions are trivially differentiable, gradients $\frac{\partial \mathcal{L}}{\partial \mathbf{V}}$ can backpropagate from the 2D loss space into the 3D voxel space.
+A windowing coefficient on the bands (coarse-to-fine annealing) is supported during training to stabilise early optimisation.
 
----
+### 3.3 Multi-view feature aggregation
 
-## 5. Loss Function Topology
+For a 3D query point, the network gathers evidence from all five feature maps. The point is rotated into each view's camera frame about the vertical axis (angles $0^\circ,\pm45^\circ,\pm90^\circ$) and projected; the feature map is sampled by bilinear interpolation:
 
-### 5.1 Multi-View Dice Loss
+$$ x_r = \cos\theta_k\, x + \sin\theta_k\, z,\qquad y_r = y,\qquad \mathbf{g}_k = \text{grid\_sample}\big(F_k,\,(x_r,y_r)\big) $$
 
-The loss forces the projected silhouettes $O(\theta_k)$ to match the ground-truth U-Net masks $M_k$:
+The per-view samples are aggregated into a **mean** and a **variance** across views (the variance encodes multi-view *disagreement*, a useful cue for surface ambiguity):
 
-$$
-\mathcal{L}(\theta) = \frac{1}{5} \sum_{k=0}^{4} \mathcal{L}_{\text{Dice\_Squared}}\!\left(O(\theta_k),\; M_k\right)
-$$
+$$ \mathbf{a}(\mathbf{x}) = \Big[\ \operatorname{mean}_k \mathbf{g}_k,\ \ \operatorname{var}_k \mathbf{g}_k\ \Big] \in \mathbb{R}^{64} $$
 
-### 5.2 Squared Dice Formulation
+### 3.4 Field decoder
 
-To enforce sharper decision boundaries in the 3D volume, the standard Dice loss is modified to use squared terms:
+A skip-connection MLP (256-wide) maps the concatenated positional encoding and aggregated features to the two field outputs:
 
-$$
-\mathcal{L}_{\text{Dice\_Squared}}(P, T) = 1 - \frac{2 \sum_{i} P_i^2 \cdot T_i^2 + \varepsilon}{\sum_i P_i^2 + \sum_i T_i^2 + \varepsilon}
-$$
+$$ (\sigma, T) = \text{MLP}\big([\,\gamma(\mathbf{x}),\ \mathbf{a}(\mathbf{x})\,]\big),\qquad \sigma = \text{softplus}(\cdot)\ \ge 0,\quad T = \text{sigmoid}(\cdot)\in[0,1] $$
 
-Squaring the predictions $P_i \in [0,1]$ heavily penalises uncertain, "fuzzy" voxels (e.g., $0.5^2 = 0.25$), forcing the network to commit to high-confidence occupancy predictions near $0$ or $1$.
+$\sigma$ is the occupancy density (geometry); $T$ is the normalised temperature, later mapped back to °C.
 
 ---
 
-## 6. Training Protocol
+## 4. Volume extraction and mesh construction
 
-| Parameter | Value |
+At inference the field is evaluated on a dense $128^3$ grid (chunked to fit GPU memory), yielding a density grid $\sigma$ and a temperature grid $T$.
+
+### 4.1 Geometry
+
+1. **Smooth** the density grid (Gaussian, $\sigma_{\text{geo}}$) to suppress voxel noise without touching the thermal field.
+2. **Marching Cubes** at iso-level $\tau = 0.3$ extracts the raw surface.
+3. **Axis reorder** to align array indices with the physical $(X,Y,Z)$ frame, where $X$ is the right–left (RL↔LL) axis matching the frontal view.
+4. **Trimesh repair**: keep the largest connected component, `fill_holes`, `fix_normals`, and optional Laplacian smoothing → a watertight mesh with outward vertex normals (the normals are required for the Stage 4 Robin skin boundary condition).
+
+### 4.2 Per-patient physical scale calibration
+
+A reconstruction in $[-1,1]^3$ must be scaled to millimetres before any physics is posed (the Laplacian scales as $1/\text{extent}^2$, so a wrong scale corrupts the PDE). Rather than a fixed `breast_radius_mm`, the scale is calibrated **per patient** from the imaging geometry of the FLIR SC620 used in DMR-IR (1.0 m standoff, 24° horizontal field of view ⇒ a 425 mm scene across the 640-px sensor):
+
+$$ \text{breast\_radius\_mm} = \tfrac{1}{2}\, w_{\text{px}} \cdot \frac{425}{\text{img\_size}} $$
+
+where $w_{\text{px}}$ is the breast width measured in the frontal mask. *Example:* for Patient 1 this yields **157.7 mm** (mask 95 px wide) versus the previous hardcoded 70 mm — a correction that removes a large, patient-dependent error from the downstream PDE residual.
+
+### 4.3 Surface temperature
+
+The temperature grid is sampled at each cleaned mesh vertex by trilinear interpolation (`map_coordinates`) and denormalised to °C using the frontal view's calibration anchor $(T_{\min}, T_{\max})$:
+
+$$ T_{\text{measured}}(\mathbf{v}) = \hat T(\mathbf{v}) \cdot (T_{\max} - T_{\min}) + T_{\min} $$
+
+*Example range (Patient 1):* $T_{\text{measured}} \in [21.9,\ 33.5]\,^\circ$C.
+
+---
+
+## 5. The trust boundary (critical for Stage 4)
+
+TherMAM-NeRF produces a *volumetric* field, but **only its surface values are trusted.** A field trained on outside-in IR views cannot observe the breast interior — its interior temperature is an unconstrained extrapolation. The bioheat solver therefore consumes only $T_{\text{measured}}$ on the skin and lets the **physics** (Pennes PDE + boundary conditions) determine the interior. This separation is what makes Stage 4 a physically-grounded inverse rather than a fit to invented interior data.
+
+---
+
+## 6. Outputs per patient
+
+| Field | Description |
 |---|---|
-| Optimiser | AdamW ($\eta_0 = 10^{-4}$, weight decay $= 10^{-4}$) |
-| Batch size | 2 (Limited by 3D tensor memory) |
-| Mixed precision | Enabled (AMP) except for $\exp(\cdot)$ |
-| Gradient checkpointing | Decoder stages 4–6 |
+| `surface_pts` $[N_s,3]$ | watertight mesh vertices (mm) |
+| `vertex_normals` $[N_s,3]$ | outward unit normals (Robin BC) |
+| `T_measured` $[N_s]$ | per-vertex skin temperature (°C) |
+| `interior_pts` $[N_v,3]$ | interior collocation points (PDE loss) |
+| `bbox_min/max` | domain extent, for normalisation and the chest-wall slab |
+| `{Patient}.stl` | exported surface for the FEA cross-check |
 
-Best validation Dice achieved: **0.8427** at epoch 58.
-
----
-
-## 7. Isosurface Extraction and Lambertian Thermal Texturing
-
-After predicting the final occupancy grid $\mathbf{V}$, the 3D continuous surface boundary $\partial \Omega$ is extracted at the isovalue $\tau = 0.5$ using the **Marching Cubes** algorithm. 
-
-To map the raw thermal intensities from the 2D images back onto the 3D mesh vertices, we implement a **Lambertian-weighted multi-view blending** scheme. 
-
-Let $\mathbf{v} \in \mathbb{R}^3$ be a vertex with unit normal $\hat{\mathbf{n}}_\mathbf{v}$. Let $\hat{\mathbf{d}}_k$ be the unit direction vector to camera $k$. The assigned temperature $T(\mathbf{v})$ is a weighted sum of the sampled 2D temperatures $I_k(\pi_k(\mathbf{v}))$:
-
-$$
-T(\mathbf{v}) = \frac{\sum_{k=0}^4 w_k(\mathbf{v}) \cdot I_k\!\left(\pi_k(\mathbf{v})\right)}{\sum_{k=0}^4 w_k(\mathbf{v})}
-$$
-
-where $\pi_k$ is the camera projection function. The weight $w_k(\mathbf{v})$ applies Lambert's cosine law, prioritising cameras that view the surface head-on (orthogonal to the normal) while ignoring occluded surfaces:
-
-$$
-w_k(\mathbf{v}) = \max(0,\; \hat{\mathbf{n}}_\mathbf{v} \cdot \hat{\mathbf{d}}_k)
-$$
-
-This physically-grounded blending mathematically guarantees a smooth, continuous thermal scalar field across the 3D manifold, free of projection seams.
+These feed directly into Stage 4. The dataset yields **122 patients** with a complete five-view set.

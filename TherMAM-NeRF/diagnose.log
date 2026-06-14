@@ -1,0 +1,33 @@
+Device  : cuda
+trimesh : 4.12.2
+TIFF dir  : True
+UNET dir  : True
+NeRF ckpt : True
+Model classes defined.
+extract_3d_volume ready.
+Geometry pipeline ready.
+PINN v3 (fixed-magnitude, geometry-only inverse) ready.
+train_pinn_single (v3 — forward-matching inverse) ready.
+generate_synthetic_skin ready.
+FEA functions (shared-constant, chest-wall-aligned) ready.
+Device: cuda
+Found 122 complete patients.
+NeRF checkpoint loaded — 205,106 parameters
+Extracting volume for Patient_1 (benign) …
+  calibrated breast_radius_mm: 157.7 mm (mask 95px wide, default was 70.0mm)
+  largest component: 31,404 verts, 62,804 faces
+  after repair     : watertight=True
+  laplacian smooth : 20 iters
+  T_measured: 21.9–33.5°C
+
+==============================================================
+TEST 2 — tumour ON vs OFF: how many °C does the source move the skin?
+==============================================================
+  planted: lateral=(46.7,24.5) z=-46.0 r=15.0 depth=48.1 noise=0%  skin T∈[21.1,31.8]°C
+  planted: lateral=(46.7,24.5) z=-46.0 r=15.0 depth=48.1 noise=0%  skin T∈[21.1,31.7]°C
+
+  tumour effect on skin:  max=0.6688 °C   mean=0.1053 °C
+  (skin field itself spans 21.1–31.8 °C)
+  READ →  max ~ 0        : source not coupling at all        → BUG
+          max << 0.1 °C  : real signal is tiny               → physics-limited (Bezerra)
+          max several °C : strong signal but flat surface    → objective/search issue

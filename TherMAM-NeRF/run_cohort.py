@@ -538,7 +538,7 @@ class BioheatPINN(nn.Module):
         d2 = ((xyz_mm[:, 0] - self.x_t) ** 2 +
               (xyz_mm[:, 1] - self.y_t) ** 2 +
               (xyz_mm[:, 2] - self.z_t) ** 2)
-        return Qd * torch.exp(-d2 / (r ** 2 + 1e-8))
+        return Q_TUMOR_SCALE * Qd * torch.exp(-d2 / (r ** 2 + 1e-8))
 
 
 def normalise_coords(pts, bbox_min, bbox_max):
@@ -994,6 +994,10 @@ REPAIR_HOLES    = True   # trimesh hole fill + normal fix
 LAPLACIAN_ITERS = 20     # Laplacian mesh smoothing iterations
 THERMAL_SIGMA   = 0.0    # light T_grid smoothing (0 = off)
 
+# Diagnostic knob: multiplies the tumour heat source. 1.0 = production (UNCHANGED);
+# --diagnose temporarily raises it. Read at call-time by BioheatPINN.Q_tumor.
+Q_TUMOR_SCALE   = 1.0
+
 # Canonical column order for the cohort CSV (kept stable for resume/append).
 COLUMNS = ['patient_id', 'label', 'x_t_mm', 'y_t_mm', 'z_t_mm', 'r_t_mm',
            'Q_max', 'depth_mm', 'volume_mm3', 'quadrant', 'match_cost', 'seed',
@@ -1021,7 +1025,162 @@ def load_models():
     return enc, m
 
 
-def process_one(dataset, idx, encoder, mlp, do_fea=True):
+def pinn_recover_dirichlet(geo, T_target, x0, y0, z_init=None, r_init=15.0,
+                           adam_steps=5000, n_colloc=5000,
+                           lr_net=1e-3, lr_src=1e-1, verbose=True,
+                           resample_every=200, tumor_bias=0.70):
+    """Mukhmetov-style inverse: skin pinned as Dirichlet (= T_target), chest wall
+    pinned 37 C, and (z_t, r_t) trained so the interior Pennes residual is
+    consistent. ONE optimization, no grid search → fast. Magnitude fixed by radius.
+
+    Key fix vs naive approach: collocation points are resampled every `resample_every`
+    steps with `tumor_bias` fraction concentrated within 4×r_t of the current tumor
+    estimate. Without this, the Gaussian source has near-zero gradient at random points
+    spread over a 300 mm domain → z_t gradient ≈ 0 → optimizer can't steer depth.
+
+    Returns (z_mm, r_mm, state_dict, final_skin_loss)."""
+    surf_pts  = torch.tensor(geo['surface_pts'],  dtype=torch.float32, device=device)
+    T         = torch.tensor(T_target,            dtype=torch.float32, device=device)
+    all_int   = torch.tensor(geo['interior_pts'], dtype=torch.float32, device=device)
+    bbox_min  = torch.tensor(geo['bbox_min'],     dtype=torch.float32, device=device)
+    bbox_max  = torch.tensor(geo['bbox_max'],     dtype=torch.float32, device=device)
+    extent_m  = ((bbox_max - bbox_min) / 2 + 1e-8) * 1e-3
+    surf_norm = normalise_coords(surf_pts, bbox_min, bbox_max)
+
+    cw_np   = chest_wall_mask_from_pts(geo['surface_pts'])
+    cw_mask = torch.tensor(cw_np, device=device); sk_mask = ~cw_mask
+    cw_norm   = surf_norm[cw_mask]
+    skin_norm = surf_norm[sk_mask]; skin_tgt = T[sk_mask]
+    n_cw = int(cw_mask.sum().item())
+    z_lo, z_hi = float(bbox_min[2]), float(bbox_max[2])
+    if z_init is None:
+        z_init = 0.5 * (z_lo + z_hi)
+
+    n_uniform = max(1, int(n_colloc * (1.0 - tumor_bias)))
+    n_local   = n_colloc - n_uniform
+
+    def sample_colloc(z_c, r_c):
+        """70% near tumor, 30% uniform — ensures non-zero dQt/dz_t gradient."""
+        sel_u = torch.randperm(all_int.shape[0], device=device)[:n_uniform]
+        pts_u = all_int[sel_u]
+        # biased: Gaussian draw around current estimate, clipped to mesh bbox
+        sigma = float(r_c) * 4.0
+        centre = torch.tensor([[x0, y0, float(z_c)]], dtype=torch.float32, device=device)
+        noise  = torch.randn(n_local * 4, 3, device=device) * sigma + centre
+        # keep only points inside bbox
+        inside = ((noise >= bbox_min) & (noise <= bbox_max)).all(dim=1)
+        noise  = noise[inside]
+        if noise.shape[0] < n_local:
+            # fallback: pad with uniform samples
+            extra = all_int[torch.randperm(all_int.shape[0], device=device)[:n_local]]
+            noise = torch.cat([noise, extra], dim=0)
+        pts_l  = noise[:n_local]
+        pts    = torch.cat([pts_u, pts_l], dim=0)
+        nrm    = normalise_coords(pts, bbox_min, bbox_max)
+        return pts, nrm
+
+    model = BioheatPINN().to(device)
+    model.x_t.requires_grad_(False); model.y_t.requires_grad_(False)
+    model.z_t.requires_grad_(True);  model.r_t.requires_grad_(True)
+    with torch.no_grad():
+        model.x_t.fill_(x0); model.y_t.fill_(y0)
+        model.z_t.fill_(float(z_init)); model.r_t.fill_(float(r_init))
+
+    int_pts, int_norm = sample_colloc(z_init, r_init)
+
+    def residuals(i_pts, i_norm):
+        L_skin = ((model(skin_norm) - skin_tgt) ** 2).mean()
+        L_cw   = ((model(cw_norm) - T_ARTERIAL) ** 2).mean() if n_cw > 0 \
+                 else torch.zeros((), device=device)
+        ii = i_norm.clone().detach().requires_grad_(True)
+        Ti = model(ii); lap = compute_laplacian(Ti, ii, extent_m)
+        Qt = model.Q_tumor(i_pts)
+        L_pde = ((K_TISSUE * lap + PERFUSION * (T_ARTERIAL - Ti)
+                  + Q_METAB + Qt) ** 2).mean()
+        return L_skin, L_cw, L_pde
+
+    # ── Phase 1: fit BCs only (freeze source params) ───────────────────────────
+    # Drive skin+CW loss to near-zero so the network represents the correct
+    # temperature field BEFORE we try to identify the source parameters.
+    model.z_t.requires_grad_(False); model.r_t.requires_grad_(False)
+    opt1 = torch.optim.Adam(model.net.parameters(), lr=lr_net)
+    steps_p1 = max(1000, adam_steps // 4)
+    if verbose:
+        print(f'    [phase 1] fitting BCs for {steps_p1} steps …', flush=True)
+    for step in range(steps_p1):
+        opt1.zero_grad()
+        L_skin = ((model(skin_norm) - skin_tgt) ** 2).mean()
+        L_cw   = ((model(cw_norm) - T_ARTERIAL) ** 2).mean() if n_cw > 0 \
+                 else torch.zeros((), device=device)
+        (L_skin + L_cw).backward(); opt1.step()
+        if verbose and step % (steps_p1 // 4) == 0:
+            print(f'      p1 step {step:4d}  skin={float(L_skin):.4f} cw={float(L_cw):.4f}',
+                  flush=True)
+    last_skin = float(L_skin)
+    if verbose:
+        print(f'    [phase 1] done  skin={last_skin:.4f}', flush=True)
+
+    # ── Phase 2: source identification (freeze network) ──────────────────────
+    # With the temperature field fixed, minimise PDE residual over (z_t, r_t).
+    # The PDE residual is now a well-posed least-squares problem: find the
+    # Gaussian source that makes k∇²T + ω(Ta-T) + Qm + Qt ≈ 0 everywhere.
+    for p in model.net.parameters():
+        p.requires_grad_(False)
+    model.z_t.requires_grad_(True); model.r_t.requires_grad_(True)
+    opt2 = torch.optim.Adam([model.z_t, model.r_t], lr=lr_src)
+    sched2 = torch.optim.lr_scheduler.CosineAnnealingLR(opt2, T_max=adam_steps, eta_min=1e-3)
+    steps_p2 = adam_steps
+    if verbose:
+        print(f'    [phase 2] source ID for {steps_p2} steps …', flush=True)
+    for step in range(steps_p2):
+        if step > 0 and step % resample_every == 0:
+            with torch.no_grad():
+                int_pts, int_norm = sample_colloc(
+                    model.z_t.item(), model.r_t.item())
+        opt2.zero_grad()
+        ii = int_norm.clone().detach().requires_grad_(True)
+        Ti = model(ii); lap = compute_laplacian(Ti, ii, extent_m)
+        Qt = model.Q_tumor(int_pts)
+        L_pde = ((K_TISSUE * lap + PERFUSION * (T_ARTERIAL - Ti)
+                  + Q_METAB + Qt) ** 2).mean()
+        L_pde.backward(); opt2.step(); sched2.step()
+        with torch.no_grad():
+            model.r_t.clamp_(5.0, 40.0); model.z_t.clamp_(z_lo, z_hi)
+        if verbose and step % 500 == 0:
+            print(f'    p2 step {step:5d}  pde={float(L_pde):.2f}'
+                  f'  z={model.z_t.item():.1f} r={model.r_t.item():.1f}', flush=True)
+
+    state = {k: v.cpu().clone() for k, v in model.state_dict().items()}
+    return float(model.z_t.item()), float(model.r_t.item()), state, last_skin
+
+
+def train_pinn_mukhmetov(geo, device, adam_steps=5000, hot_pct=0.90):
+    """Mukhmetov-style Dirichlet-skin inverse on the patient's real surface T.
+    Lateral pinned to the IR hot-spot; depth & radius recovered in one optimization."""
+    sp = geo['surface_pts']; Tm = geo['T_measured']
+    sk = ~chest_wall_mask_from_pts(sp)
+    thr = np.quantile(Tm[sk], hot_pct); hot = sk & (Tm >= thr)
+    x0, y0 = float(sp[hot, 0].mean()), float(sp[hot, 1].mean())
+    z_lo, z_hi = float(geo['bbox_min'][2]), float(geo['bbox_max'][2])
+    print(f'  [mukhmetov] hot-spot lateral=({x0:.1f},{y0:.1f}); recovering depth+radius…',
+          flush=True)
+    z, r, state, match = pinn_recover_dirichlet(
+        geo, geo['T_measured'], x0, y0, z_init=0.5 * (z_lo + z_hi), adam_steps=adam_steps)
+    Q = float(tumor_Qm_from_radius(torch.tensor(r)).item())
+    centre = torch.tensor([x0, y0, z])
+    depth_mm = float((torch.tensor(sp[sk]) - centre).norm(dim=1).min().item())
+    results = {
+        'patient_id': geo['patient_id'], 'label': geo['label'],
+        'x_t_mm': x0, 'y_t_mm': y0, 'z_t_mm': z, 'r_t_mm': r, 'Q_max': Q,
+        'depth_mm': depth_mm, 'volume_mm3': (4.0 / 3.0) * np.pi * r ** 3,
+        'quadrant': classify_quadrant(x0, y0), 'match_cost': match, 'seed': 0,
+    }
+    print(f"  → lateral=({x0:.1f},{y0:.1f})[pinned]  z={z:.1f}mm  r={r:.1f}mm  "
+          f"depth={depth_mm:.1f}mm  Q={Q:.0f}W/m³  {results['quadrant']}", flush=True)
+    return results, state
+
+
+def process_one(dataset, idx, encoder, mlp, do_fea=True, method='forward_match'):
     """Full per-patient pipeline (mirrors the notebook cohort body) → results dict."""
     item = dataset[idx]
     pid, lab = item['patient_id'], item['label']
@@ -1039,7 +1198,10 @@ def process_one(dataset, idx, encoder, mlp, do_fea=True):
     np.save(str(patient_dir / f'{pid}_T_measured.npy'), geo['T_measured'])
     np.save(str(patient_dir / f'{pid}_surf_pts.npy'),   geo['surface_pts'])
 
-    pinn_results, pinn_state = train_pinn_single(geo, device)
+    if method == 'mukhmetov':
+        pinn_results, pinn_state = train_pinn_mukhmetov(geo, device)
+    else:
+        pinn_results, pinn_state = train_pinn_single(geo, device)
     torch.save(pinn_state, str(patient_dir / f'{pid}_pinn.pth'))
 
     if do_fea:
@@ -1119,6 +1281,66 @@ def select_indices(patients, args):
     return list(range(n))
 
 
+def run_diagnose(args):
+    """Bug-vs-physics diagnostics for the inverse.
+      TEST 2 — how many °C does the tumour actually move the skin? (same seed, on vs off)
+      TEST 1 — does depth/radius recover when the source is 100x stronger?
+    Uses the global Q_TUMOR_SCALE knob; production runs are untouched (scale stays 1.0)."""
+    global Q_TUMOR_SCALE
+    dataset, patients = build_dataset()
+    encoder, mlp = load_models()
+    idx = args.syn_idx
+    geo = load_patient_geo(
+        dataset, idx, encoder, mlp, CFG, device,
+        gaussian_sigma=GAUSSIAN_SIGMA, mc_threshold_override=MC_THRESHOLD,
+        repair_holes=REPAIR_HOLES, laplacian_iters=LAPLACIAN_ITERS,
+        thermal_sigma=THERMAL_SIGMA)
+    zlo, zhi = float(geo['bbox_min'][2]), float(geo['bbox_max'][2])
+    z_plant = zlo + 0.50 * (zhi - zlo)
+    r_plant = 15.0
+    sk = ~chest_wall_mask_from_pts(geo['surface_pts'])   # skin-vertex mask
+
+    # ── TEST 2: tumour on/off skin sensitivity (same seed → controlled comparison) ──
+    if args.test in ('2', 'both'):
+        print('\n' + '=' * 62)
+        print('TEST 2 — tumour ON vs OFF: how many °C does the source move the skin?')
+        print('=' * 62, flush=True)
+        Q_TUMOR_SCALE = 1.0
+        T_on,  _ = generate_synthetic_skin(geo, device, z_plant, r_plant, seed=0)
+        Q_TUMOR_SCALE = 0.0
+        T_off, _ = generate_synthetic_skin(geo, device, z_plant, r_plant, seed=0)
+        Q_TUMOR_SCALE = 1.0
+        dT = np.abs(T_on[sk] - T_off[sk])
+        print(f'\n  tumour effect on skin:  max={dT.max():.4f} °C   mean={dT.mean():.4f} °C')
+        print(f'  (skin field itself spans {T_on[sk].min():.1f}–{T_on[sk].max():.1f} °C)')
+        print('  READ →  max ~ 0        : source not coupling at all        → BUG')
+        print('          max << 0.1 °C  : real signal is tiny               → physics-limited (Bezerra)')
+        print('          max several °C : strong signal but flat surface    → objective/search issue',
+              flush=True)
+
+    # ── TEST 1: ×100 source recovery ──
+    if args.test in ('1', 'both'):
+        print('\n' + '=' * 62)
+        print('TEST 1 — x100 SOURCE: does depth/radius recover when the signal is huge?')
+        print('=' * 62, flush=True)
+        Q_TUMOR_SCALE = 100.0
+        T_syn, planted = generate_synthetic_skin(geo, device, z_plant, r_plant, seed=0)
+        geo_syn = dict(geo); geo_syn['T_measured'] = T_syn
+        res, _ = train_pinn_single(geo_syn, device, save_plot=False)
+        Q_TUMOR_SCALE = 1.0
+        dz = abs(res['z_t_mm'] - planted['z_t_mm'])
+        dr = abs(res['r_t_mm'] - planted['r_t_mm'])
+        dl = ((planted['x_t_mm'] - res['x_t_mm']) ** 2
+              + (planted['y_t_mm'] - res['y_t_mm']) ** 2) ** 0.5
+        print(f'\n  planted  : z={planted["z_t_mm"]:6.1f}  r={planted["r_t_mm"]:5.1f}  '
+              f'lateral=({planted["x_t_mm"]:.1f},{planted["y_t_mm"]:.1f})')
+        print(f'  recovered: z={res["z_t_mm"]:6.1f}  r={res["r_t_mm"]:5.1f}  '
+              f'lateral=({res["x_t_mm"]:.1f},{res["y_t_mm"]:.1f})')
+        print(f'  errors   : depth={dz:.1f} mm   radius={dr:.1f} mm   lateral={dl:.1f} mm')
+        print('  READ →  small errors  : search/code is FINE → real failure is weak signal (physics)')
+        print('          still wrong   : genuine BUG in the inverse search/objective', flush=True)
+
+
 def run_cohort(args):
     dataset, patients = build_dataset()
     if args.list:
@@ -1143,7 +1365,8 @@ def run_cohort(args):
         print(f'\n{bar}\n[{n}/{len(idxs)}] {pid} ({lab})  idx={idx}\n{bar}', flush=True)
         ts = time.time()
         try:
-            row = process_one(dataset, idx, encoder, mlp, do_fea=not args.no_fea)
+            row = process_one(dataset, idx, encoder, mlp, do_fea=not args.no_fea,
+                              method=args.method)
         except Exception as e:
             import traceback; traceback.print_exc()
             row = {'patient_id': pid, 'label': lab, 'Q_max': np.nan,
@@ -1230,6 +1453,10 @@ def main():
                     help='comma-separated dataset indices')
     ap.add_argument('--no-fea', dest='no_fea', action='store_true',
                     help='skip FEA forward verification (PINN-only, faster)')
+    ap.add_argument('--method', choices=['forward_match', 'mukhmetov'],
+                    default='forward_match',
+                    help="inverse: 'mukhmetov' = fast Dirichlet-skin single-opt (no grid); "
+                         "'forward_match' = v3 grid search (slow)")
     ap.add_argument('--resume', dest='resume', action='store_true', default=True,
                     help='skip patients already in the CSV (default on)')
     ap.add_argument('--no-resume', dest='resume', action='store_false',
@@ -1244,10 +1471,16 @@ def main():
                     help='patient index to borrow geometry from (synthetic mode)')
     ap.add_argument('--noise', type=float, default=0.0,
                     help='synthetic skin-noise fraction (Bezerra-style robustness)')
+    ap.add_argument('--diagnose', action='store_true',
+                    help='bug-vs-physics diagnostics (tumour on/off + x100 source)')
+    ap.add_argument('--test', choices=['1', '2', 'both'], default='both',
+                    help='which diagnostic test to run (default both)')
     args = ap.parse_args()
 
     print(f'Device: {device}', flush=True)
-    if args.synthetic:
+    if args.diagnose:
+        run_diagnose(args)
+    elif args.synthetic:
         run_synthetic(args)
     else:
         run_cohort(args)
