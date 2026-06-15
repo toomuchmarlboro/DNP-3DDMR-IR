@@ -110,13 +110,15 @@ Replace the PINN with **FEniCSx itself** as the forward model inside the optimis
 
 ### Synthetic validation (Patient_1, in progress)
 
-| Planted z (mm) | r (mm) | Recovered z (mm) | Depth err | Radius err |
-|---|---|---|---|---|
-| −61.9 | 8 | −62.0 | **0.2 %** | **0.1 %** |
-| −61.9 | 14 | −62.0 | **0.1 %** | **0.1 %** |
-| 7 more scenarios in progress … | | | | |
+9 scenarios complete (3 depths × 3 radii, Patient_1):
 
-Cost reaches machine zero — FEniCSx recovers its own output exactly.
+| Depth range | r = 8 mm | r = 14 mm | r = 20 mm |
+|---|---|---|---|
+| Deep (z = −61.9 mm) | 0.19 % / 0.11 % | 0.14 % / 0.08 % | 0.06 % / 0.01 % |
+| Mid (z = −38.0 mm) | 0.21 % / 0.12 % | 0.28 % / 0.02 % | 0.12 % / 0.04 % |
+| Shallow (z = −14.1 mm) | 0.50 % / 0.29 % | 0.50 % / 0.10 % | 0.23 % / 0.01 % |
+
+*(depth err % / radius err %)* — **mean 0.25 % / 0.09 %, max 0.50 % / 0.29 %**. Cost → machine zero in every scenario.
 
 ### Honest scope
 

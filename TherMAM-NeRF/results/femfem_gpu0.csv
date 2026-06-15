@@ -1,0 +1,2 @@
+patient_id,label,x0_mm,y0_mm,z_hat_mm,r_hat_mm,grid_cost,final_cost,fea_mean_residual,fea_max_residual,n_fem_evals
+Patient_1,benign,46.7,24.5,-38.7,40.0,32.87434,27.889194,5.159,12.564,79
