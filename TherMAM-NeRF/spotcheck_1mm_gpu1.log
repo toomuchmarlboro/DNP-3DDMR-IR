@@ -1,0 +1,30 @@
+Device  : cuda
+trimesh : 4.12.2
+TIFF dir  : True
+UNET dir  : True
+NeRF ckpt : True
+Model classes defined.
+extract_3d_volume ready.
+Geometry pipeline ready.
+PINN v3 (fixed-magnitude, geometry-only inverse) ready.
+train_pinn_single (v3 — forward-matching inverse) ready.
+generate_synthetic_skin ready.
+FEA functions (shared-constant, chest-wall-aligned) ready.
+Found 122 complete patients.
+NeRF checkpoint loaded — 205,106 parameters
+
+Real-patient FEM-FEM inverse: 2 patients (stride=1, offset=0)
+  [1/2] idx=3  Patient_106  (benign)
+  [2/2] idx=0  Patient_1  (benign)
+
+============================================================
+[1/2] Patient_106  (benign)  idx=3
+============================================================
+Extracting volume for Patient_106 (benign) …
+  calibrated breast_radius_mm: 166.0 mm (mask 100px wide, default was 70.0mm)
+  largest component: 36,992 verts, 73,980 faces
+  after repair     : watertight=True
+  laplacian smooth : 20 iters
+  T_measured: 21.9–32.1°C
+  Generating mesh (1.0 mm) → /mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh
+STL saved → /mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.stl

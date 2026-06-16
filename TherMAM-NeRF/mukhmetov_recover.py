@@ -146,8 +146,13 @@ def recover_fem_fem(geo, T_target, x0, y0, msh_path, n_z=5, n_r=4, nm_iter=30):
 # Patient geometry helpers
 # ---------------------------------------------------------------------------
 
-def load_geo_and_mesh(dataset, idx, encoder, mlp, pid_dir, mesh_suffix=''):
-    """Load TherMAM-NeRF geo for patient idx and ensure mesh exists."""
+def load_geo_and_mesh(dataset, idx, encoder, mlp, pid_dir, mesh_suffix='',
+                      mesh_size_mm=3.0):
+    """Load TherMAM-NeRF geo for patient idx and ensure mesh exists.
+
+    mesh_size_mm controls the tet element size (default 3.0 = production). A
+    non-default size is encoded into the mesh filename so it does not collide
+    with the cached 3 mm mesh (used by the 1 mm convergence spot-check)."""
     geo = R.load_patient_geo(
         dataset, idx, encoder, mlp, CFG, device,
         gaussian_sigma=GAUSSIAN_SIGMA, mc_threshold_override=MC_THRESHOLD,
@@ -156,12 +161,14 @@ def load_geo_and_mesh(dataset, idx, encoder, mlp, pid_dir, mesh_suffix=''):
     pid = geo['patient_id']
     pid_dir.mkdir(exist_ok=True, parents=True)
     suffix = f'_{mesh_suffix}' if mesh_suffix else ''
+    if abs(mesh_size_mm - 3.0) > 1e-6:
+        suffix += f'_{mesh_size_mm:g}mm'
     stl_path = str(pid_dir / f'{pid}{suffix}.stl')
     msh_path = str(pid_dir / f'{pid}{suffix}.msh')
     if not os.path.exists(msh_path):
-        print(f'  Generating mesh → {msh_path}', flush=True)
+        print(f'  Generating mesh ({mesh_size_mm} mm) → {msh_path}', flush=True)
         save_stl_binary(stl_path, geo['surface_pts'], geo['faces'])
-        stl_to_tet_mesh(stl_path, msh_path, mesh_size_mm=3.0)
+        stl_to_tet_mesh(stl_path, msh_path, mesh_size_mm=mesh_size_mm)
         print('  Mesh ready.', flush=True)
     else:
         print(f'  Reusing existing mesh: {msh_path}', flush=True)
@@ -624,7 +631,8 @@ def run_real(args, dataset, patients, encoder, mlp):
         try:
             patient_dir = RESULTS_DIR / pid
             geo, msh_path = load_geo_and_mesh(
-                dataset, idx, encoder, mlp, patient_dir, mesh_suffix='syn')
+                dataset, idx, encoder, mlp, patient_dir, mesh_suffix='syn',
+                mesh_size_mm=getattr(args, 'mesh_size', 3.0))
 
             x0, y0 = hotspot_lateral(geo)
             sp = geo['surface_pts']
@@ -726,6 +734,8 @@ def main():
     ap.add_argument('--n-z',   type=int, default=5,  help='grid depth points')
     ap.add_argument('--n-r',   type=int, default=4,  help='grid radius points')
     ap.add_argument('--nm',    type=int, default=30, help='Nelder-Mead max iterations')
+    ap.add_argument('--mesh-size', type=float, default=3.0,
+                    help='tet mesh element size in mm (default 3.0; convergence spot-check uses 1.0)')
     args = ap.parse_args()
 
     if args.plot_csv:
