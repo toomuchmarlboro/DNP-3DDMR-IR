@@ -324,6 +324,29 @@ The successive change falls from 38.9 to 9.5 m°C; at matched refinement ratio (
 
 **Why this matters.** Because the solver converges optimally *and* the skin signal is mesh-converged at 3 mm, the ~5 °C real-data mismatch cannot be a numerical artefact — it is attributable to the **boundary-condition physics** (the homogeneous-tissue assumption and the BC constants of §2.5), exactly as expected. For context, our 3 mm mesh has **587 k tetrahedral elements in 3D**, versus Jahani et al.'s 10 448 triangular elements in 2D (~56× more, one dimension higher), so the model is far better resolved than the published comparison.
 
+### 6.6 Mesh refinement is *not* boundary-condition refinement (a common confusion)
+
+A recurring question is whether a finer mesh would fix the model-mismatch or the radius rail by giving "better boundary conditions." It would not — **the mesh and the boundary conditions are different layers of the problem**, and conflating them is a category error worth stating explicitly.
+
+| | What it is | Lives in | Changed by |
+|---|---|---|---|
+| **Boundary condition** | the physics *rule* at the domain edge — chest wall $T=37$ °C (Dirichlet), skin $-k\,\partial_n T = h(T-T_\infty)$ (Robin), with $h=10$, $T_\infty=20$ °C | the **problem definition** | choosing different *values/types* |
+| **Mesh** | how finely the domain is discretised into tetrahedra | the **solution method** | refining element size |
+
+Refining the mesh makes the numerical answer converge to the **true solution of the *same* boundary-value problem** — same BCs. It does **not** move the boundary conditions toward reality. (Analogy: the BC is the *rules of the game*; the mesh is the *screen resolution* you watch it on — a sharper screen shows the same game more clearly, it does not change the rules.)
+
+This separates the two distinct error sources:
+
+- **Numerical error** = gap between the discrete (meshed) solution and the exact PDE solution. **Fixed by finer mesh.** Already < 0.01 °C at 3 mm (§6.5).
+- **Model error** = gap between the PDE problem (its BC constants, homogeneous-tissue assumption) and physical reality. **Fixed only by better BCs/physics — never by mesh.** This is the ~5 °C mismatch (§2.4).
+
+Consequences, stated plainly:
+- The **~5 °C model-mismatch** is model error → reducible only by changing the BCs/physics (per-patient $T_\infty$ and body temperature, layered tissue), *not* by refining the mesh.
+- The **radius rail** is the depth–size identifiability degeneracy (§2.5, §7.0) → fixed only by changing the *cost function* (e.g. adding a shape feature), *not* by mesh or BC.
+- The one place mesh and BC interact is **geometric resolution**: the mesh must be fine enough to follow the skin surface so the Robin BC is applied on an accurate boundary. The convergence study shows 3 mm already resolves the geometry (the solution stopped changing), so further refinement adds nothing to how well the BC is represented.
+
+The §6.5 convergence study used a single mid-size source ($r=15$ mm); a separate targeted check (`conv_radius_test.py` → `/tmp/radius_conv.txt`) re-solves the forward problem at the *rail* radii — small ($r=5$ mm) and large ($r=40$ mm) — across the 4.0→0.7 mm meshes to confirm both regimes are mesh-converged (a small source is the only case where coarse-mesh under-resolution is plausible). Preliminary probe-mean temperatures for $r=5$ mm stay within the same ~0.02 °C band as $r=15$ mm; the formal RMS-vs-finest figures are recorded in that file once the run completes. The expectation — to be confirmed by those numbers, not asserted — is that neither rail is a mesh artefact, since the rail is a property of the cost landscape (the depth–size degeneracy), not the discretisation.
+
 ---
 
 ## 7. Real-Patient Application and Limitations
