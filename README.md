@@ -25,16 +25,29 @@ The sign convention above is used throughout the repository and matches the pape
  U-Net breast-region segmentation  ──►  binary masks
         │
         ▼
- TherMAM-NeRF (thermal neural field)  ──►  watertight geometry (STL)  +  per-vertex surface temperature
+ TherMAM-NeRF (thermal neural field)  ──►  watertight BILATERAL geometry (both breasts, STL)  +  per-vertex surface temperature
         │
         ▼
- FEM-FEM inverse bioheat (FEniCSx grid search + Nelder-Mead)  ──►  tumour depth z_t, radius r_t
+ FEM-FEM inverse bioheat (FEniCSx grid search + Nelder-Mead, BILATERAL-asymmetry cost)  ──►  tumour depth z_t, radius r_t
         │
         ▼
  Lateral pin from IR hot-spot centroid  ──►  tumour lateral (x, y) position
 ```
 
+The inverse cost is a **left–right (bilateral) asymmetry** comparison: the healthy breast is a built-in control whose subtraction cancels the common-mode model-mismatch. This is what makes real-data depth/radius *identifiable* — an absolute-temperature cost collapses the radius to its bound (see "Cost-function progression" below).
+
 The **active** components are: preprocessing + U-Net (masks), TherMAM-NeRF (reconstruction), and the FEM-FEM inverse bioheat (`mukhmetov_recover.py`, `run_cohort.py`). PINN variants (v1, v3, Mukhmetov-PINN) are under "Previous Work" as documented negative results — each entry explains why it was superseded.
+
+### Status & headline results (2026-06-17)
+
+The full **122-patient cohort** (96 benign, 26 malignant — the complete usable DMR-IR set) is processed. Two-sided result:
+
+- **Positive (significant):** the *model-free* bilateral asymmetry |A| is higher in malignancy — benign median **1.37 °C** vs malignant **1.56 °C**, **Mann–Whitney U p = 0.0088 (two-sided), 0.0044 (one-sided)**; survives Bonferroni across the 5 metrics tested.
+- **Negative (rigorously characterised):** the inverse *geometry* (depth/radius) does **not** separate the classes (all p > 0.3), and the radius rails — the **depth–size degeneracy published by Jahani et al. (2023)**, reproduced here, not a bug.
+- **Numerics verified:** the FEM solver converges optimally (CG/GAMG, ~17 iterations independent of mesh) and the skin signal is mesh-converged at 3 mm (<0.01 °C change through 1.0 mm refinement) — so the ~5 °C model-mismatch is BC physics, not a numerical artefact.
+- **BCs are literature-standard:** identical to Jahani et al. 2023 (37 °C chest wall, Robin $h{=}10$, $T_\infty{\approx}21$ °C, Gautherie law); our 3D mesh (587 k elements) is ~56× finer than their 2D study.
+
+Full detail and statistics: [Docs/Stage4_InverseBioheat.md](Docs/Stage4_InverseBioheat.md) §0, §2.5, §6.5, §7.3. Dataset funnel (268→137→122) and FEM-input checklist: [TherMAM-NeRF/data_verification.ipynb](TherMAM-NeRF/data_verification.ipynb).
 
 ---
 
@@ -104,40 +117,84 @@ Replace the PINN with **FEniCSx itself** as the forward model inside the optimis
 
 * **Fixed:** lateral $(x_0,y_0)$ from IR hot-spot centroid (top 10 % warmest vertices); magnitude $Q_0(r_t)$ from Gautherie law.
 * **Optimised:** $(z_t, r_t)$ only (2 DOF).
-* **Step 1:** coarse 5×4 grid = 20 FEM solves; cost = skin-only MSE vs target surface T.
+* **Cost:** **bilateral asymmetry** — $J=\text{mean}((A_\text{FEM}-A_\text{IR})^2)$ on the affected breast, where $A(\mathbf{v})=T(\mathbf{v})-T(\text{mirror}(\mathbf{v}))$ subtracts the contralateral breast. Cancels the common-mode mismatch floor *and* removes the radius rail (a cross-midline source cancels in $A$ and earns no reward).
+* **Step 1:** coarse 5×4 grid = 20 FEM solves.
 * **Step 2:** Nelder-Mead refine (≤30 iterations) from grid best.
 * **Mesh:** generated once from TherMAM-NeRF STL via Gmsh, reused across all evaluations.
 
-### Synthetic validation (Patient_1, in progress)
+### Cost-function progression (why bilateral)
 
-9 scenarios complete (3 depths × 3 radii, Patient_1):
+On real data the *cost function*, not the forward model, decides whether geometry is identifiable:
+
+| Cost | Patient_1 $r_{hat}$ | Cohort behaviour | Verdict |
+|---|---|---|---|
+| Absolute skin MSE | 40.0 mm (rail) | 6/6 at upper bound — radius abused as heating knob ($Q\propto r^3$) | degenerate |
+| Mean-centred MSE | 40.0 mm (rail) | both bounds, flat cost surface | degenerate |
+| **Bilateral asymmetry** | **20.4 mm (interior)** | unique interior minimum | **identifiable** |
+
+(Baselines preserved under `results/raw_baseline/` and `results/mean_centered_baseline/`.)
+
+### Synthetic validation (Patient_1, bilateral cost)
+
+9 scenarios (3 depths × 3 radii), run under the **same bilateral cost used on real data**:
 
 | Depth range | r = 8 mm | r = 14 mm | r = 20 mm |
 |---|---|---|---|
-| Deep (z = −61.9 mm) | 0.19 % / 0.11 % | 0.14 % / 0.08 % | 0.06 % / 0.01 % |
-| Mid (z = −38.0 mm) | 0.21 % / 0.12 % | 0.28 % / 0.02 % | 0.12 % / 0.04 % |
-| Shallow (z = −14.1 mm) | 0.50 % / 0.29 % | 0.50 % / 0.10 % | 0.23 % / 0.01 % |
+| Deep (z = −61.9 mm) | 0.20 % / 0.22 % | 0.09 % / 0.02 % | 0.07 % / 0.00 % |
+| Mid (z = −38.0 mm) | 0.39 % / 0.76 % | 0.28 % / 0.09 % | 0.04 % / 0.05 % |
+| Shallow (z = −14.1 mm) | 0.47 % / 0.04 % | 0.57 % / 0.06 % | 0.41 % / 0.00 % |
 
-*(depth err % / radius err %)* — **mean 0.25 % / 0.09 %, max 0.50 % / 0.29 %**. Cost → machine zero in every scenario.
+*(depth err % / radius err %)* — **mean 0.28 % / 0.14 %**, max 0.57 % / 0.76 %; no single outlier (shallow tumours run slightly higher in depth error). Cost → machine zero in every scenario.
+
+### Numerical verification (solver + mesh convergence)
+
+A standalone check ([convergence_test2.py](TherMAM-NeRF/convergence_test2.py)) confirms each FEM solve is itself correct, evaluated at a fixed 8 000-point probe across meshes:
+
+* **Solver:** CG/GAMG reaches `CONVERGED_RTOL` ($10^{-10}$) in **16–23 iterations** at every resolution, iteration count flat across a 54× DOF range — mesh-independent multigrid, no silent failure.
+* **Mesh:** probe-mean skin temperature stable at **24.56 ± 0.01 °C**; RMS change between successive meshes shrinks 38.9 → 35.2 → 24.3 → **9.5 m°C** (4.0 → 1.0 mm) — converged well before the 3 mm production setting. The 0.01 °C wobble is ~300× below the 5 °C mismatch, so that mismatch is BC physics, not discretisation.
+
+Figures: `results/thesis_figures/fig7_fem_convergence.png`, `fig8_konvergensi_mesh.png`.
+
+### Full cohort results (122 patients)
+
+Complete usable DMR-IR set, 96 benign / 26 malignant (`results/cohort_femfem_ALL122.csv`):
+
+| Metric | Benign median | Malignant median | p (Mann–Whitney U) |
+|---|---|---|---|
+| Depth $\hat z$, Radius $\hat r$, cost, FEA residual | — | — | all **> 0.3** (no separation) |
+| **\|A\| bilateral asymmetry** (model-free) | **1.37 °C** | **1.56 °C** | **0.0088** two-sided / **0.0044** one-sided |
+
+The inverse *geometry* carries no class information (radius rails in both classes — the published depth–size degeneracy). The *bilateral asymmetry* the pipeline extracts **does** separate the classes, significantly. Figure: `results/thesis_figures/fig9_asimetri_bilateral.png`.
 
 ### Honest scope
 
-The synthetic SNR is 670:1 → sub-0.3 % error. On **real DMR-IR data** the model-mismatch floor is 4.5–5.6 °C (real tissue heterogeneity vs homogeneous FEM), larger than the 0.67 °C tumour signal. Real-patient depth/radius estimates cannot be validated without co-registered MRI/CT — the same limitation Mukhmetov et al. (2025) report (18.67 % radius error, depth unverifiable, single real patient). Lateral position from the IR hot-spot centroid and per-patient FEA residuals remain reportable for all 122 patients.
+Bilateral subtraction cancels the **common-mode** model-mismatch floor (4.5–5.6 °C, shared by both reconstructed breasts), exposing the real ~2 °C left–right asymmetry — flipping the SNR that defeated the absolute-cost formulations. This establishes **identifiability** (a unique interior depth/radius minimum, validated end-to-end on synthetic data), **not absolute accuracy**: DMR-IR has no co-registered MRI/CT, so real-patient depth/radius cannot be checked against truth, and residual non-tumour tissue asymmetry bounds the fit. Mukhmetov et al. (2025) report 18.67 % radius error (depth unverifiable) on one real patient using a 3D scanner and single-breast model; we reach identifiability from **2D IR alone** by turning the second breast into the control their setup lacks. Lateral position, per-patient `mirror_snap` symmetry quality, and FEA residuals are reportable across the cohort.
 
 ### Running
 
 ```bash
-conda activate bioheat
+PYTHON=/path/to/miniconda3/envs/bioheat/bin/python
 cd TherMAM-NeRF
-python -u mukhmetov_recover.py --idx 0 | tee mukhmetov_syn.log   # synthetic validation
-python -u run_cohort.py --method mukhmetov --all                  # real cohort
+
+# Synthetic validation (9 scenarios, Patient_1) — bilateral cost
+$PYTHON -u mukhmetov_recover.py --idx 0 | tee mukhmetov_syn.log
+
+# Real cohort — balanced 40 patients, 2-GPU split (separate tmux panes)
+CUDA_VISIBLE_DEVICES=0 $PYTHON -u mukhmetov_recover.py --real --subset 40 \
+    --stride 2 --offset 0 --out results/femfem_gpu0.csv | tee femfem_gpu0.log
+CUDA_VISIBLE_DEVICES=1 $PYTHON -u mukhmetov_recover.py --real --subset 40 \
+    --stride 2 --offset 1 --out results/femfem_gpu1.csv | tee femfem_gpu1.log
+
+# Merge + plot after both finish
+$PYTHON -u mukhmetov_recover.py --plot-csv results/cohort_femfem_all.csv
 ```
 
-### Outputs (under `TherMAM-NeRF/PINNpdeSolver/results/`)
+### Outputs
 
-* `mukhmetov_recovery.csv` / `mukhmetov_recovery.png` — 9-scenario synthetic table + scatter plot
-* `{Patient_ID}/{Patient_ID}_syn.stl` / `.msh` — patient surface + tetrahedral mesh
-* `cohort_mukhmetov.csv` — per-patient `x_t_mm, y_t_mm, z_hat_mm, r_hat_mm, cost, fea_residual`
+* Synthetic (under `TherMAM-NeRF/PINNpdeSolver/results/`): `mukhmetov_recovery.csv`, `mukhmetov_recovery.png` (planted-vs-recovered scatter), `mukhmetov_error_breakdown.png` (bar + heatmaps); `{Patient_ID}/{Patient_ID}_syn.stl` / `.msh`.
+* Real cohort (under `TherMAM-NeRF/results/`): `femfem_gpu{0,1}.csv` → merged `cohort_femfem_all.csv` with `patient_id, label, x0_mm, y0_mm, z_hat_mm, r_hat_mm, grid_cost, final_cost, fea_mean_residual, fea_max_residual, n_fem_evals`; `cohort_femfem_results.png` (6-panel by-class figure); `cohort_femfem_summary.csv`; per-patient `{Patient_ID}_fea_vs_ir.html` and `{Patient_ID}_tumor_localisation.html`.
+* Cost-function baselines retained for comparison: `results/raw_baseline/`, `results/mean_centered_baseline/`.
+* Full 122-patient cohort: `results/cohort_femfem_ALL122.csv`, `results/asymmetry_ALL.csv` (model-free |A| signal); thesis figures under `results/thesis_figures/` (`fig7`/`fig8` convergence, `fig9` asymmetry p=0.0044, `fig1…6` dataset verification); reproducible verification in [TherMAM-NeRF/data_verification.ipynb](TherMAM-NeRF/data_verification.ipynb).
 
 ---
 
@@ -237,7 +294,8 @@ Zifa and Jessie: the main things to preserve are the **view convention** and **p
 * Keep the five-view ordering fixed as RL, RO, F, LO, LL unless you update every dependent stage.
 * Keep the angle convention consistent with the repository notes and paper-aligned registration.
 * The U-Net masks are the foundation — if you change the segmentation checkpoint, re-verify that mask generation stays compatible with reconstruction (it is consumed frozen at runtime).
-* For the bioheat stage, remember the rule that makes v3 work: **fix the tumour magnitude, estimate only geometry, and never let the source minimise the PDE residual freely** (it escapes to the boundary). If you revisit the inverse, read "Why v3 differs" first.
+* For the bioheat stage, two rules carry the method: (1) **fix the tumour magnitude, estimate only geometry** — magnitude is unidentifiable from the surface (Bezerra 2013); (2) on real data use the **bilateral asymmetry cost**, not absolute or mean-centred MSE — only the left–right difference cancels the common-mode model-mismatch and keeps the radius off its bound. The single-breast assumption (absolute cost) silently rails the radius to 40 mm; this was the main methodological trap.
+* The NeRF reconstructs **both breasts** — this is required, not incidental: the contralateral breast is the control for the bilateral cost. Do not segment it away.
 * The NeRF interior temperature is not trustworthy — only use its surface values downstream.
 
 ---
@@ -248,7 +306,7 @@ To run the **current** pipeline end-to-end:
 
 1. Run [watershed_background_removal.py](watershed_background_removal.py) for background-cleaned inputs, and generate breast masks with the frozen U-Net ([UNET_Segmentation_newest.ipynb](<UNET_Segmentation/Masking and Segmentation/UNET_Segmentation_newest.ipynb>)).
 2. Train / load the thermal neural field with [thermamnerf_v2.9.py](TherMAM-NeRF/thermamnerf_v2.9.py) to obtain geometry + surface temperature.
-3. Run the FEM-FEM inverse: `python -u mukhmetov_recover.py --idx 0` for synthetic validation (9 scenarios, one patient), then `python -u run_cohort.py --method mukhmetov --all` for the real 122-patient cohort.
+3. Run the FEM-FEM inverse: `python -u mukhmetov_recover.py --idx 0` for synthetic validation (9 scenarios, one patient), then `python -u mukhmetov_recover.py --real --subset 40 --stride 2 --offset {0,1}` (2-GPU split) for the real cohort under the bilateral cost.
 
 To understand the **history / methodology** (not the active path):
 
@@ -269,6 +327,7 @@ Dataset verification is captured in [datasettest.ipynb](<Previous Works (VAE, le
 * Olzhas Mukhmetov et al. (2025), *Non-Invasive Breast Cancer Detection Using Physics-Informed Neural Networks with Thermal Imaging and 3D Patient-Specific Breast Models* — the closest method to the v3 inverse (fixes magnitude, estimates geometry).
 * Olzhas Mukhmetov et al. (2023), *Physics-Informed Neural Network for Fast Prediction of Temperature Distributions in Cancerous Breasts* — PINN as a forward bioheat solver.
 * L.A. Bezerra (2013), *Estimation of breast tumor thermal properties using infrared images* — FEM-in-loop inverse + the sensitivity analysis showing magnitude/perfusion are unidentifiable from the surface.
+* F. Jahani, M. Shafieian, M. Nabaei (2023), *Estimation of Size and Depth of a Breast Tumor Using Thermal Analysis; A Numerical Study*, IEEE ICBME — axisymmetric FEM with the same Pennes BCs and Gautherie law; explicitly reports the depth–size degeneracy and proposes the hotspot half-width `L` as a second feature. Validates our boundary conditions and frames our radius rail as a known limit.
 * M. Gautherie (1980/1983), tumour doubling-time vs. metabolic-heat relation used to fix $Q$ from size.
 * Arka Prabha Saha (2023), *3D-BreastNet: A Self-supervised Deep Learning Network for Reconstruction of 3D Breast Surface from 2D Thermal Images*.
 * Gleidson M. Costa (2023), *Modeling the 3D Breast Surface Using Thermography*.

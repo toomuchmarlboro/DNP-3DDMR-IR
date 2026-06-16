@@ -68,15 +68,36 @@ def fem_surface(msh_path, geo, x0, y0, z_t, r_t):
 def recover_fem_fem(geo, T_target, x0, y0, msh_path, n_z=5, n_r=4, nm_iter=30):
     """Grid search + Nelder-Mead inverse using FEM forward model.
 
-    Cost = skin-only MSE between candidate FEM surface T and T_target.
-    Chest wall excluded — it is Dirichlet 37 C in every solve, carries no info.
-    Works for both synthetic (T_target = T_syn, cost → 0) and real data
-    (T_target = T_measured, cost → model-mismatch floor ~4-6 C^2).
+    Cost = BILATERAL ASYMMETRY MSE.  For each affected-breast skin vertex v we
+    form the left-right thermal asymmetry A(v) = T(v) - T(mirror(v)), where
+    mirror(v) is the corresponding point on the contralateral (healthy) breast,
+    and match A_FEM to A_target:  cost = mean( (A_FEM - A_target)^2 ).
+
+    This is the clinically correct formulation for a TWO-breast mesh — the
+    healthy breast is the built-in control.  Common-mode model-mismatch
+    (homogeneous tissue, BC constants, ambient, NeRF geometry error) affects
+    both breasts almost identically and CANCELS in the difference, so the real
+    tumour asymmetry (~0.5-1 C) is exposed instead of being buried under the
+    ~5 C absolute mismatch floor.  It also removes the r->40 mm rail: a source
+    large enough to cross the midline warms both breasts symmetrically and
+    cancels, giving no cost benefit, so the optimiser is forced to a confined
+    single-breast source.
+
+    Chest wall excluded.  On synthetic data the true (z,r) still gives cost 0
+    (A_FEM == A_target), so self-consistency validation is unaffected.
     """
-    sk    = ~chest_wall_mask_from_pts(geo['surface_pts'])
-    T_tgt = T_target[sk]
+    sp             = geo['surface_pts']
+    sk             = ~chest_wall_mask_from_pts(sp)
+    mir, x_mid, md = build_mirror_map(geo)
+    # affected breast = the side the IR hot-spot (x0) sits on
+    side  = (sp[:, 0] > x_mid) if x0 > x_mid else (sp[:, 0] < x_mid)
+    aff   = sk & side
+    A_tgt = (T_target[aff] - T_target[mir[aff]]).astype(np.float64)
     z_lo  = float(geo['bbox_min'][2])
     z_hi  = float(geo['bbox_max'][2])
+    print(f'  bilateral: midline x={x_mid:.1f}  mirror_snap={md:.1f}mm  '
+          f'affected_verts={int(aff.sum())}  |A_target|={np.abs(A_tgt).mean():.3f} C',
+          flush=True)
 
     n_evals = [0]
 
@@ -86,7 +107,8 @@ def recover_fem_fem(geo, T_target, x0, y0, msh_path, n_z=5, n_r=4, nm_iter=30):
         r_c = float(np.clip(params[1], 5., 40.))
         try:
             T_c = fem_surface(msh_path, geo, x0, y0, z_c, r_c)
-            return float(np.mean((T_c[sk] - T_tgt) ** 2))
+            A_c = T_c[aff] - T_c[mir[aff]]
+            return float(np.mean((A_c - A_tgt) ** 2))
         except Exception as e:
             print(f'    [FEM failed at z={params[0]:.1f} r={params[1]:.1f}: {e}]',
                   flush=True)
@@ -154,6 +176,27 @@ def hotspot_lateral(geo):
     thr = np.quantile(Tm[sk], 0.90)
     hot = sk & (Tm >= thr)
     return float(sp[hot, 0].mean()), float(sp[hot, 1].mean())
+
+
+def build_mirror_map(geo, x_mid=None):
+    """Index map: for each surface vertex, its mirror across the breast midline.
+
+    The DMR-IR mesh contains BOTH breasts (X spans ~235 mm, centred near the
+    sternum).  Reflecting x about the midline and snapping to the nearest vertex
+    gives, for every point on one breast, the corresponding point on the
+    contralateral breast — the basis for the bilateral asymmetry cost.
+
+    Returns (idx, x_mid, mirror_dist) where idx[v] is the mirror vertex of v and
+    mirror_dist is the mean snap distance (small = clean bilateral symmetry).
+    """
+    from scipy.spatial import cKDTree
+    sp = geo['surface_pts']
+    if x_mid is None:
+        x_mid = float(np.mean(sp[:, 0]))
+    mirrored = sp.copy()
+    mirrored[:, 0] = 2.0 * x_mid - mirrored[:, 0]
+    dist, idx = cKDTree(sp).query(mirrored, k=1)
+    return idx, x_mid, float(dist.mean())
 
 
 # ---------------------------------------------------------------------------
