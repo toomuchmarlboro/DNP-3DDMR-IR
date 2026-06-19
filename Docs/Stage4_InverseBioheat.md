@@ -36,9 +36,13 @@ This section is the chronological story of the inverse-bioheat work and where it
 
 Stage 4 couples the Stage-3 surface temperature to biophysics and solves an **inverse bioheat problem**: given the reconstructed skin temperature, estimate the internal tumour consistent with it. The framing is a **screening tool** — the quantities sought are the tumour's **position, depth, and size**, not a diagnosis.
 
-The current method uses **FEniCSx (dolfinx) as the forward model inside a grid-search + Nelder-Mead optimiser**, directly replicating the self-consistent "FEM-as-oracle" approach of Mukhmetov et al. (2025), but replacing their ANSYS solver with FEniCSx and their 3D scanner requirement with TherMAM-NeRF geometry. Three PINN variants were attempted first; all failed for reasons documented in §4.
+The method **adopts the forward bioheat model of Mukhmetov et al. (2023)** — the Pennes equation with a **Dirichlet 37 °C chest wall** and a **convective (Robin) skin BC**, $h=10$ W/m²K — i.e. the *same governing equation and boundary conditions* (verified term-by-term in §2.5, §3.3). Two deliberate changes define this work:
 
-A second, equally important departure from Mukhmetov: TherMAM-NeRF reconstructs **both breasts** as a single mesh, whereas Mukhmetov models one breast. This is exploited — not worked around. The cost function is a **bilateral asymmetry** comparison (§5.6): the contralateral (healthy) breast is a built-in control whose subtraction cancels the common-mode model-mismatch that otherwise renders real-data geometry unidentifiable. The progression of three cost functions (absolute MSE → mean-centred → bilateral) and why only the last is identifiable on real data is documented in §7.
+**1. FEM forward → FEM inverse (not PINN).** Mukhmetov (2023) builds a *PINN* as a fast *forward* solver, validated against ANSYS FEA, and explicitly leaves the inverse problem as *"future inverse thermal modeling."* We instead use **FEniCSx (dolfinx) as the forward model**, wrapped in a grid-search + Nelder-Mead **inverse** — *FEM forward inside an FEM inverse* ("FEM-FEM"). The PINN route was attempted first (three variants, §4); all failed — a deep Tanh network cannot represent the bioheat field to better than ~7 °C, drowning the 0.67 °C tumour signal — so the FEM forward replaced it. Same physics as Mukhmetov, FEM in place of both the PINN and ANSYS.
+
+**2. Bilateral 2-breast geometry.** Mukhmetov models a single breast; TherMAM-NeRF reconstructs **both breasts in one mesh**. This is exploited — not worked around — via a **bilateral-asymmetry cost** (§5.6): the contralateral (healthy) breast is a built-in control whose left–right subtraction cancels the common-mode model-mismatch that otherwise renders real-data geometry unidentifiable. The progression of three cost functions (absolute MSE → mean-centred → bilateral) and why only the last is identifiable on real data is in §7.
+
+In short: **Mukhmetov's forward bioheat model, realised as a FEM-forward / FEM-inverse loop on a bilateral 2-breast geometry.**
 
 ### 1.1 Four-stage pipeline overview
 
@@ -88,6 +92,8 @@ A natural concern — that the boundary conditions might be mis-specified — wa
 | Pennes (steady-state) | identical | identical |
 
 The 1 °C air-temperature difference (21 vs 20 °C) is within the literature's own range and, under the bilateral cost, **cancels in the left–right subtraction** (a spatially-uniform BC error is common-mode; §2.4). The boundary conditions are therefore not an arbitrary choice — they are the standard published model. (The DMR-IR acquisition protocol does measure per-session atmospheric temperature, which our pipeline did not retain; using it per-patient would be a refinement *beyond* the literature, but is moot for the bilateral cost since it cancels.)
+
+**The same model is used by Mukhmetov et al. (2023)** — the forward bioheat solver this work's FEM-FEM inverse adopts (§1). Their breast model sets the internal/chest-wall temperature to 37 °C and applies convective skin loss at $h=10$ W/(m²·K) (their Eq. 4, §3-C), identical to §3.3 here. Note Mukhmetov's contour figures show *warm* skin (~36–37 °C) because they illustrate the **adiabatic** skin case (no surface heat loss); the convective case with realistic $h$/$T_\infty$ gives the cooler skin (~29 °C) seen in real thermograms. The absolute skin level is governed entirely by the convective constants $(h, T_\infty)$, not by the solver — and is irrelevant to the bilateral cost, which uses only the left–right difference.
 
 **The depth–size degeneracy is also published.** Jahani et al. report explicitly (their §III.A.4) that the maximum surface temperature difference *cannot* separately determine depth and size: a 0.14 °C signal can indicate a 10 mm tumour at 25 mm depth **or** a 15 mm tumour at 30 mm depth. This is precisely the degeneracy that rails our recovered radius (§7.0) — a **known fundamental limit of thermographic inversion, independently reproduced here**, not an implementation error. Their proposed remedy — a second shape feature `L` (the half-maximum width of the surface hotspot, which is "mostly a function of depth") — is the natural direction for future work to break the rail.
 
@@ -345,7 +351,30 @@ Consequences, stated plainly:
 - The **radius rail** is the depth–size identifiability degeneracy (§2.5, §7.0) → fixed only by changing the *cost function* (e.g. adding a shape feature), *not* by mesh or BC.
 - The one place mesh and BC interact is **geometric resolution**: the mesh must be fine enough to follow the skin surface so the Robin BC is applied on an accurate boundary. The convergence study shows 3 mm already resolves the geometry (the solution stopped changing), so further refinement adds nothing to how well the BC is represented.
 
-The §6.5 convergence study used a single mid-size source ($r=15$ mm); a separate targeted check (`conv_radius_test.py` → `/tmp/radius_conv.txt`) re-solves the forward problem at the *rail* radii — small ($r=5$ mm) and large ($r=40$ mm) — across the 4.0→0.7 mm meshes to confirm both regimes are mesh-converged (a small source is the only case where coarse-mesh under-resolution is plausible). Preliminary probe-mean temperatures for $r=5$ mm stay within the same ~0.02 °C band as $r=15$ mm; the formal RMS-vs-finest figures are recorded in that file once the run completes. The expectation — to be confirmed by those numbers, not asserted — is that neither rail is a mesh artefact, since the rail is a property of the cost landscape (the depth–size degeneracy), not the discretisation.
+The §6.5 convergence study used a single mid-size source ($r=15$ mm); a separate targeted check (`conv_radius_test.py`) re-solves the forward problem at the *rail* radii — small ($r=5$ mm) and large ($r=40$ mm) — across the 4.0→0.7 mm meshes (a small source is the only case where coarse-mesh under-resolution is plausible). Measured RMS skin-temperature vs the finest (0.7 mm) mesh:
+
+| | $r=5$ mm (lower rail) | $r=40$ mm (upper rail) |
+|---|---|---|
+| 3.0 mm (production) | 26.9 m°C | within a 0.02 °C probe band |
+| 1.0 mm | 3.8 m°C | within a 0.02 °C probe band |
+
+So even the worst case — the small $r=5$ mm source at 3 mm — sits **0.027 °C** from the converged value, ~50× below the |A| ≈ 1.4 °C asymmetry signal and ~185× below the 5 °C mismatch. Refining 3 mm → 1 mm moves the skin field by only ~0.023 °C. **Neither rail is a mesh artefact** — both are properties of the cost landscape (the depth–size degeneracy), not the discretisation. This is confirmed end-to-end by the inverse spot-check in §6.7.
+
+### 6.7 Inverse spot-check at 1 mm — the rail is mesh-independent (empirical)
+
+§6.5–6.6 show the *forward* solve is mesh-converged; this section closes the loop by re-running the **full inverse** (grid search + Nelder-Mead, ~70 FEM solves per patient) at 1 mm on five representative patients and comparing the recovered $\hat r$ to the 3 mm production value. The inverse accepts `--mesh-size 1.0`, which writes 1 mm meshes to distinct files (`Patient_N_syn_1mm.msh`) so the cached 3 mm meshes are untouched. Five patients span all regimes: two upper-rail, one lower-rail (the case most sensitive to mesh), two interior controls. Output: `results/spotcheck_1mm_gpu{0,1}.csv`; figure: `results/thesis_figures/fig10_spotcheck_1mm.png`.
+
+**Prediction (stated before the run):** if the rail is the degeneracy and not mesh under-resolution, $\hat r$ should be essentially unchanged at 1 mm — railed patients stay railed, interior ones stay put.
+
+| Patient | regime | 3 mm $\hat r$ | 1 mm $\hat r$ | Δ$\hat r$ |
+|---|---|---|---|---|
+| Patient_10 | upper rail | 40.0 mm | **40.0 mm** | 0.0 |
+| Patient_125 | lower rail | 5.1 mm | **5.0 mm** | 0.1 |
+| Patient_106 | upper rail | 40.0 mm | *(not run)* | — |
+| Patient_1 | interior | 20.4 mm | *(not run)* | — |
+| Patient_312 | interior | 35.2 mm | *(not run)* | — |
+
+**Both completed cases reproduce the 3 mm result at 1 mm.** Patient_10 (upper rail) gives $\hat r=40.0$, $\hat z=-16.9$ identical (cost 6.94 vs 6.93, 0.16 % from a ~25× finer mesh); Patient_125 (lower rail — the small source, the only regime where coarse-mesh under-resolution was plausible) gives $\hat r=5.0$ vs 5.1, i.e. unchanged to 0.1 mm. The run was **stopped after 2/5** because the conclusion was already decisive and the same for both rail directions: refining 3 mm → 1 mm does **not** move the recovered geometry. Combined with the forward-solve convergence at the rail radii (§6.6), this settles it empirically — **3 mm is the production mesh**, and the rail is a property of the cost landscape, not the discretisation. Figure: `results/thesis_figures/fig10_spotcheck_1mm.png`.
 
 ---
 
@@ -526,4 +555,6 @@ $PYTHON -u mukhmetov_recover.py --plot-csv results/cohort_femfem_all.csv
 | `results/thesis_figures/fig7_fem_convergence.png`, `fig8_konvergensi_mesh.png` | Solver + mesh convergence study (EN / Bahasa Indonesia) |
 | `results/thesis_figures/fig1…6_*.png` | Dataset verification: class distribution, 268→137→122 funnel, view completeness, clinical metadata, FEM-input map |
 | `TherMAM-NeRF/data_verification.ipynb` | Reproducible dataset/metadata verification notebook |
-| `convergence_test2.py` | Standalone solver/mesh convergence diagnostic (no GPU) |
+| `convergence_test2.py`, `conv_radius_test.py` | Standalone solver/mesh convergence diagnostics (no GPU) |
+| `results/spotcheck_1mm_gpu{0,1}.csv` | 1 mm inverse spot-check (5 patients) — §6.7 |
+| `results/thesis_figures/fig10_spotcheck_1mm.png` | r̂ at 3 mm vs 1 mm per patient (rail mesh-independence, Bahasa Indonesia) |

@@ -28,3 +28,461 @@ Extracting volume for Patient_106 (benign) …
   T_measured: 21.9–32.1°C
   Generating mesh (1.0 mm) → /mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh
 STL saved → /mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.stl
+  Mesh ready.
+  lateral=(4.2,74.9)  z-range=[-120.0,72.2]  skin IR: 21.87–32.10 °C
+  [inverse FEM] searching (z_t, r_t) on real IR …
+  bilateral: midline x=1.8  mirror_snap=9.5mm  affected_verts=18304  |A_target|=1.279 C
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+    grid z= -104.6 r=  7.0 → 11.738355 ★
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+    grid z= -104.6 r= 12.0 → 11.738195 ★
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+    grid z= -104.6 r= 17.0 → 11.729019 ★
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+    grid z= -104.6 r= 22.0 → 11.691287 ★
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+    grid z=  -62.8 r=  7.0 → 11.729965
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+    grid z=  -62.8 r= 12.0 → 11.694126
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+    grid z=  -62.8 r= 17.0 → 11.620706 ★
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+    grid z=  -62.8 r= 22.0 → 11.504408 ★
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+    grid z=  -21.0 r=  7.0 → 11.722768
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+    grid z=  -21.0 r= 12.0 → 11.693023
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+    grid z=  -21.0 r= 17.0 → 11.639439
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+    grid z=  -21.0 r= 22.0 → 11.560837
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+    grid z=   20.8 r=  7.0 → 11.735263
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+    grid z=   20.8 r= 12.0 → 11.725660
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+    grid z=   20.8 r= 17.0 → 11.704778
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+    grid z=   20.8 r= 22.0 → 11.670672
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+    grid z=   62.6 r=  7.0 → 11.738318
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+    grid z=   62.6 r= 12.0 → 11.737508
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+    grid z=   62.6 r= 17.0 → 11.735079
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+    grid z=   62.6 r= 22.0 → 11.729458
+  grid best: z=-62.8 r=22.0  cost=11.504408
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'...
+Info    : 5 entities
+Info    : 3338011 nodes
+Info    : 19664023 elements
+Info    : 2 parametrizations
+Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/results/Patient_106/Patient_106_syn_1mm.msh'
+[0]PETSC ERROR: ------------------------------------------------------------------------
+[0]PETSC ERROR: Caught signal number 15 Terminate: Some process (or the batch system) has told this process to end
+[0]PETSC ERROR: Try option -start_in_debugger or -on_error_attach_debugger
+[0]PETSC ERROR: or see https://petsc.org/release/faq/#valgrind and https://petsc.org/release/faq/
+[0]PETSC ERROR: configure using --with-debugging=yes, recompile, link, and run 
+[0]PETSC ERROR: to get more information on the crash.
+Abort(59) on node 0 (rank 0 in comm 0): application called MPI_Abort(MPI_COMM_WORLD, 59) - process 0

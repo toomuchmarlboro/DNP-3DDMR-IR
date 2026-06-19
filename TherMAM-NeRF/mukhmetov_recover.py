@@ -59,7 +59,7 @@ def fem_surface(msh_path, geo, x0, y0, z_t, r_t):
     Q0  = float(tumor_Qm_from_radius(torch.tensor(r_t)).item())
     params = {'x_t_mm': x0, 'y_t_mm': y0, 'z_t_mm': z_t,
               'r_t_mm': r_t, 'Q_max': Q0}
-    T_sol, msh = run_fea_forward(msh_path, params)
+    T_sol, msh = run_fea_forward(msh_path, params, geo)
     _, _, _, T_surf = compute_fea_residual(
         T_sol, msh, geo['surface_pts'], geo['T_measured'])
     return T_surf.astype(np.float32)
@@ -87,7 +87,7 @@ def recover_fem_fem(geo, T_target, x0, y0, msh_path, n_z=5, n_r=4, nm_iter=30):
     (A_FEM == A_target), so self-consistency validation is unaffected.
     """
     sp             = geo['surface_pts']
-    sk             = ~chest_wall_mask_from_pts(sp)
+    sk             = ~chest_wall_mask_from_pts(sp, geo['vertex_normals'])
     mir, x_mid, md = build_mirror_map(geo)
     # affected breast = the side the IR hot-spot (x0) sits on
     side  = (sp[:, 0] > x_mid) if x0 > x_mid else (sp[:, 0] < x_mid)
@@ -179,7 +179,7 @@ def hotspot_lateral(geo):
     """Lateral pin: centroid of top-10 % warmest skin vertices."""
     sp = geo['surface_pts']
     Tm = geo['T_measured']
-    sk = ~chest_wall_mask_from_pts(sp)
+    sk = ~chest_wall_mask_from_pts(sp, geo['vertex_normals'])
     thr = np.quantile(Tm[sk], 0.90)
     hot = sk & (Tm >= thr)
     return float(sp[hot, 0].mean()), float(sp[hot, 1].mean())
@@ -266,7 +266,7 @@ def generate_patient_htmls(geo, msh_path, x0, y0, z_hat, r_hat,
     params = {'x_t_mm': x0, 'y_t_mm': y0, 'z_t_mm': z_hat,
               'r_t_mm': r_hat, 'Q_max': Q0}
     try:
-        T_sol, fea_msh = run_fea_forward(msh_path, params)
+        T_sol, fea_msh = run_fea_forward(msh_path, params, geo)
         _, mean_res, max_res, T_fea_interp = compute_fea_residual(
             T_sol, fea_msh, geo['surface_pts'], geo['T_measured'])
         pinn_results = {
@@ -504,7 +504,7 @@ def run_synthetic(args, dataset, encoder, mlp):
     msh_path = str(patient_dir / f'{pid}_syn.msh')
 
     sp = geo['surface_pts']
-    sk = ~chest_wall_mask_from_pts(sp)
+    sk = ~chest_wall_mask_from_pts(sp, geo['vertex_normals'])
     x0, y0 = hotspot_lateral(geo)
     z_lo = float(geo['bbox_min'][2])
     z_hi = float(geo['bbox_max'][2])
@@ -637,7 +637,7 @@ def run_real(args, dataset, patients, encoder, mlp):
             x0, y0 = hotspot_lateral(geo)
             sp = geo['surface_pts']
             Tm = geo['T_measured']
-            sk = ~chest_wall_mask_from_pts(sp)
+            sk = ~chest_wall_mask_from_pts(sp, geo['vertex_normals'])
             z_lo = float(geo['bbox_min'][2])
             z_hi = float(geo['bbox_max'][2])
             skin_range = f'{Tm[sk].min():.2f}–{Tm[sk].max():.2f} °C'
@@ -736,7 +736,22 @@ def main():
     ap.add_argument('--nm',    type=int, default=30, help='Nelder-Mead max iterations')
     ap.add_argument('--mesh-size', type=float, default=3.0,
                     help='tet mesh element size in mm (default 3.0; convergence spot-check uses 1.0)')
+    ap.add_argument('--h-conv', type=float, default=None,
+                    help='override skin convective coeff h (W/m2K); default run_cohort H_CONV=10. '
+                         'Calibrated value ~5 gives realistic ~29C skin.')
+    ap.add_argument('--t-air', type=float, default=None,
+                    help='override ambient air temperature T_air (C); default 20. Calibrated ~24.')
     args = ap.parse_args()
+
+    # Optional boundary-condition calibration. run_fea_forward() reads H_CONV / T_AIR
+    # from the run_cohort module scope at call time, so overriding them here propagates
+    # to every forward solve. Defaults (None) leave production BCs untouched.
+    if args.h_conv is not None:
+        R.H_CONV = args.h_conv
+        print(f'[BC override] H_CONV = {R.H_CONV} W/m2K', flush=True)
+    if args.t_air is not None:
+        R.T_AIR = args.t_air
+        print(f'[BC override] T_AIR = {R.T_AIR} C', flush=True)
 
     if args.plot_csv:
         csv_path = Path(args.plot_csv)

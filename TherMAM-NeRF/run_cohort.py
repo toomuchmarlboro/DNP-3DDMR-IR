@@ -471,8 +471,11 @@ PERFUSION  = OMEGA_B * RHO_BLOOD * C_BLOOD   # W/(m³·K) lumped perfusion coeff
 
 # Chest-wall identification — shared by PINN BC and FEA BC for consistency.
 CHEST_WALL_FRAC = 0.10   # back 10 % of the depth (z) range is "chest wall"
-CHEST_WALL_SIDE = 'min'  # 'min' = low-z is chest wall (matches FEA); flip to 'max'
-                         # if the reconstruction has the body side at high z.
+CHEST_WALL_SIDE = 'max'  # body/chest wall is at HIGH z in this reconstruction:
+                         # the ANTERIOR skin (real IR, breast bulge) is at LOW z,
+                         # confirmed visually (chestwall_check.png). Previously 'min'
+                         # mislabeled the anterior skin as chest wall -> Dirichlet 37C
+                         # on the wrong side. Fixed 2026-06-17.
 
 # ── Tumour heat magnitude is FIXED by physiology, NOT learned ───────────────
 # Bezerra (2013) sensitivity analysis proves the tumour heat MAGNITUDE has
@@ -495,10 +498,20 @@ def tumor_Qm_from_radius(r_t_mm):
     return DOUBLING_C / tau                           # W/m³
 
 
-def chest_wall_mask_from_pts(pts_mm, frac=CHEST_WALL_FRAC, side=CHEST_WALL_SIDE):
+def chest_wall_mask_from_pts(pts_mm, normals=None, frac=CHEST_WALL_FRAC, side=CHEST_WALL_SIDE):
     """Boolean mask: which surface vertices belong to the chest wall (body side).
-    The chest wall is the internal face toward the body — it is NOT seen by the
-    IR camera, so it is anchored to arterial temperature (Dirichlet 37 °C)."""
+    The chest wall is the internal face toward the body — NOT seen by the IR
+    camera — anchored to arterial temperature (Dirichlet 37 °C).
+
+    NORMAL-BASED (preferred): pass per-vertex `normals`; the chest wall is the
+    posterior-facing surface (outward normal pointing to the body). With
+    CHEST_WALL_SIDE='max' the anterior skin faces -Z, so chest wall = n_z > 0.
+    This covers the whole back (a thin z-slab cannot, on a curved posterior).
+    Falls back to a z-slab only if normals are unavailable (legacy PINN path)."""
+    if normals is not None:
+        nz = np.asarray(normals)[:, 2]
+        nz = nz / (np.linalg.norm(np.asarray(normals), axis=1) + 1e-9)
+        return nz > 0.0 if side == 'max' else nz < 0.0
     z = pts_mm[:, 2]
     z_lo, z_hi = float(z.min()), float(z.max())
     span = (z_hi - z_lo) + 1e-8
@@ -862,10 +875,14 @@ def stl_to_tet_mesh(stl_path, out_msh_path, mesh_size_mm=3.0):
     finally:
         gmsh.finalize()
 
-def run_fea_forward(msh_path, pinn_results):
+def run_fea_forward(msh_path, pinn_results, geo=None):
     """Independent FEniCSx forward solve of the SAME BVP the PINN now solves:
     chest-wall Dirichlet 37 °C + Robin convective skin + Pennes interior.
-    Uses the shared global constants so PINN ≡ FEA (no IR data enters here)."""
+    Uses the shared global constants so PINN ≡ FEA (no IR data enters here).
+
+    If `geo` (with 'surface_pts','vertex_normals') is given, the chest wall is
+    the NORMAL-BASED posterior-facing surface (covers the whole back); otherwise
+    a legacy z-slab is used."""
     from mpi4py import MPI
     import dolfinx, dolfinx.mesh
     from dolfinx.io import gmsh as gmshio   # dolfinx 0.10 path
@@ -896,18 +913,31 @@ def run_fea_forward(msh_path, pinn_results):
     Ta, Qm  = T_ARTERIAL, Q_METAB
     h, T_air = H_CONV, T_AIR
 
-    # chest-wall slab — SAME rule as chest_wall_mask_from_pts (geometry in metres)
-    zc = msh.geometry.x[:, 2]
-    z_lo, z_hi = float(_np.min(zc)), float(_np.max(zc))
-    span = (z_hi - z_lo) + 1e-12
-    if CHEST_WALL_SIDE == 'min':
-        cut = z_lo + CHEST_WALL_FRAC * span
-        def chest_wall(pt): return pt[2] < cut
+    fdim = msh.topology.dim - 1
+    if geo is not None:
+        # NORMAL-BASED chest wall: posterior-facing exterior facets = body side.
+        from scipy.spatial import cKDTree
+        msh.topology.create_connectivity(fdim, msh.topology.dim)
+        ext = dolfinx.mesh.exterior_facet_indices(msh.topology)
+        mid = dolfinx.mesh.compute_midpoints(msh, fdim, ext)          # metres
+        nrm = _np.asarray(geo['vertex_normals'], dtype=float)
+        nrm = nrm / (_np.linalg.norm(nrm, axis=1, keepdims=True) + 1e-9)
+        _, gi = cKDTree(_np.asarray(geo['surface_pts'], dtype=float) * 1e-3).query(mid)
+        post = (nrm[gi, 2] > 0.0) if CHEST_WALL_SIDE == 'max' else (nrm[gi, 2] < 0.0)
+        facets = ext[post]
     else:
-        cut = z_hi - CHEST_WALL_FRAC * span
-        def chest_wall(pt): return pt[2] > cut
-    facets = dolfinx.mesh.locate_entities_boundary(msh, msh.topology.dim-1, chest_wall)
-    dofs   = fem.locate_dofs_topological(V, msh.topology.dim-1, facets)
+        # legacy z-slab
+        zc = msh.geometry.x[:, 2]
+        z_lo, z_hi = float(_np.min(zc)), float(_np.max(zc))
+        span = (z_hi - z_lo) + 1e-12
+        if CHEST_WALL_SIDE == 'min':
+            cut = z_lo + CHEST_WALL_FRAC * span
+            chest_wall = lambda pt: pt[2] < cut
+        else:
+            cut = z_hi - CHEST_WALL_FRAC * span
+            chest_wall = lambda pt: pt[2] > cut
+        facets = dolfinx.mesh.locate_entities_boundary(msh, fdim, chest_wall)
+    dofs   = fem.locate_dofs_topological(V, fdim, facets)
     bc     = fem.dirichletbc(_np.float64(Ta), dofs, V)   # np scalar in 0.10
 
     a = (k*ufl.inner(ufl.grad(T), ufl.grad(v)) + perf*T*v)*ufl.dx + h*T*v*ufl.ds
