@@ -1,0 +1,40 @@
+β-VAE strong  latent=16  β=0.5  epochs=300  in_ch=5  aug=True
+Patients: 122 total  (96 benign, 26 malignant)
+Device: cuda
+Parameters: 8,292,129
+Epoch    1/300  Loss=0.2008  Recon=0.0942  KL=0.983  β_eff=0.01
+Epoch   50/300  Loss=0.5970  Recon=0.0636  KL=0.020  β_eff=0.33
+Epoch  100/300  Loss=0.8630  Recon=0.0630  KL=0.014  β_eff=0.50
+Epoch  150/300  Loss=0.0644  Recon=0.0644  KL=0.017  β_eff=0.00
+Epoch  200/300  Loss=0.5957  Recon=0.0624  KL=0.019  β_eff=0.33
+Epoch  250/300  Loss=0.8642  Recon=0.0642  KL=0.021  β_eff=0.50
+Epoch  300/300  Loss=0.0632  Recon=0.0632  KL=0.019  β_eff=0.00
+Weights saved.
+Z=(122, 16)  dead_dims=11/16  var_mean=0.0121
+Saved fig0_training_loss.png
+Saved fig1_reconstruction.png
+Computing UMAP...
+Saved fig2_umap.png
+Saved fig3_pca.png
+Running LOO-CV SVM  (plain + SMOTE)...
+
+== LOO-CV Results ==
+  Plain (class_weight=balanced):  AUC=0.649  Sens=0.000  Spec=1.000
+  SMOTE (k=5):            AUC=0.523  Sens=0.423  Spec=0.812
+  MWU p=0.0040
+Saved fig4_classifier.png
+Saved fig5_latent_dims.png
+
+========================================================
+SUMMARY
+========================================================
+  Patients          : 122 (96 benign, 26 malignant)
+  Input             : all view(s)  5 ch  64×64
+  β-VAE             : latent=16  β=0.5  epochs=300
+  Dead latent dims  : 11 / 16
+  Significant dims  : 9 / 16  (t-test p<0.05)
+  LOO-CV SVM (plain): AUC=0.649  Sens=0.000  Spec=1.000
+  LOO-CV SVM (SMOTE): AUC=0.523  Sens=0.423  Spec=0.812
+  MWU p-value       : 0.0040
+========================================================
+Results → /mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/VAE_Discriminability/results
