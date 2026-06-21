@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """
-DDP usage: `torchrun --nproc_per_node=2 thermamnerf_v2.9.py`
+DDP usage: `torchrun --nproc_per_node=2 thermamnerf_v3.0.py`
 """
 
 import os
+import csv
 import copy
 import json
 import math
@@ -30,9 +31,15 @@ from scipy.ndimage import gaussian_filter
 from scipy.spatial import cKDTree
 import plotly.graph_objects as go
 from pathlib import Path
+from datetime import timedelta
 from tqdm import tqdm
 import warnings
 warnings.filterwarnings('ignore')
+
+# ── Performance: faster kernels (do NOT change model outputs) ──────────────────
+torch.backends.cudnn.benchmark = True          # fixed 128x128 inputs -> autotune fastest conv
+torch.backends.cuda.matmul.allow_tf32 = True   # TF32 matmuls on Ampere+ (negligible precision cost)
+torch.backends.cudnn.allow_tf32 = True          # remove these 3 lines for bit-exact fp32
 
 def setup_distributed():
     if 'RANK' in os.environ and 'WORLD_SIZE' in os.environ:
@@ -40,7 +47,8 @@ def setup_distributed():
         world_size = int(os.environ['WORLD_SIZE'])
         local_rank = int(os.environ.get('LOCAL_RANK', 0))
         backend = 'nccl' if torch.cuda.is_available() else 'gloo'
-        dist.init_process_group(backend=backend, init_method='env://')
+        dist.init_process_group(backend=backend, init_method='env://',
+                                timeout=timedelta(hours=1))
         if torch.cuda.is_available():
             torch.cuda.set_device(local_rank)
     else:
@@ -64,7 +72,7 @@ SCRIPT_DIR       = Path(__file__).resolve().parent
 REPO_ROOT        = SCRIPT_DIR.parent
 TIFF_DIR         = str(REPO_ROOT / 'data' / 'organized_by_patient')
 UNET_DIR         = str(REPO_ROOT / 'data' / 'organized_by_patient_unet')
-OUTPUT_DIR       = str(SCRIPT_DIR / 'thermamnerf_outputs2.9')
+OUTPUT_DIR       = str(SCRIPT_DIR / 'thermamnerf_outputs_finalized')
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # ── Hyperparameters ──────────────────────────────────────────────────────────
@@ -101,7 +109,7 @@ CFG = {
     'mc_resolution'   : 128,
 
     'use_amp'         : True,
-    'use_grad_checkpoint': True,
+    'use_grad_checkpoint': True,   # ON = lower VRAM (recompute in backward); needed to avoid CUDA OOM here
 }
 if not torch.cuda.is_available():
     CFG['use_amp'] = False
@@ -262,14 +270,15 @@ train_dl = DataLoader(
     batch_size=CFG['batch_size'],
     shuffle=(train_sampler is None),
     sampler=train_sampler,
-    num_workers=0,
-    pin_memory=False,
+    num_workers=4,
+    pin_memory=True,
+    persistent_workers=True,
 )
 
 val_dl = None
 if IS_MAIN:
     val_dl = DataLoader(val_ds, batch_size=1, shuffle=False,
-                        num_workers=0, pin_memory=False)
+                        num_workers=2, pin_memory=True, persistent_workers=True)
 
 # Quick sanity-check (will save figures to OUTPUT_DIR when running headless)
 if IS_MAIN and len(train_ds) > 0:
@@ -367,7 +376,6 @@ class ThermamNeRFMLP(nn.Module):
                  hidden: int = 256, n_layers: int = 6):
         super().__init__()
         in_dim  = pos_enc_dim + feat_dim
-        layers  = [nn.Linear(in_dim, hidden), nn.ReLU(inplace=False)]
         self.layers  = nn.ModuleList()
         self.skip_at = n_layers // 2 - 1
         prev = in_dim
@@ -661,14 +669,14 @@ if RESUME and os.path.exists(ckpt_path):
     mlp_state = {k.replace('module.', ''): v for k, v in ckpt['mlp'].items()}
     encoder_base.load_state_dict(enc_state)
     mlp_base.load_state_dict(mlp_state)
+    START_EPOCH = ckpt.get('epoch', 0) + 1
     if IS_MAIN:
-        print('\nResumed weights')
-    START_EPOCH = 41
+        print(f'\nResumed from epoch {START_EPOCH - 1}')
     for _ in range(START_EPOCH - 1):
         scheduler.step()
 
 
-history       = {'train_loss': [], 'val_dice': [], 'val_thermal': [], 'val_iou': [], 'val_joint': []}
+history       = {'train_loss': [], 'val_dice': [], 'val_thermal': [], 'val_iou': [], 'val_joint': [], 'lr': []}
 best_val_dice = float('inf')
 
 for epoch in tqdm(range(START_EPOCH, CFG['n_epochs'] + 1), desc='Training Epochs'):
@@ -714,8 +722,10 @@ for epoch in tqdm(range(START_EPOCH, CFG['n_epochs'] + 1), desc='Training Epochs
     else:
         mean_train = np.mean(epoch_loss)
 
+    current_lr = optimiser.param_groups[0]['lr']
     scheduler.step()
     history['train_loss'].append(mean_train)
+    history['lr'].append(current_lr)
 
     if IS_MAIN:
         encoder.eval()
@@ -735,9 +745,11 @@ for epoch in tqdm(range(START_EPOCH, CFG['n_epochs'] + 1), desc='Training Epochs
         dice_score = 1 - vd
         iou_score  = dice_score / (2 - dice_score) if dice_score < 1.0 else 1.0
         
-        # Joint validation metric (lower is better): Dice Loss + scaled Thermal MSE
-        # Since thermal loss is MSE (~0.05), we scale it to be comparable to Dice loss (~0.1)
-        joint_val = vd + (CFG.get('lambda_thermal', 10.0) / 10.0) * vt
+        # Joint validation metric (lower is better): Dice Loss + scaled Thermal MSE.
+        # Geometry-dominant selection (factor 2.0): keeps Dice the primary driver of which
+        # checkpoint is saved, with thermal as a secondary tie-breaker. This is a free
+        # selection criterion and need NOT match the training lambda_thermal (=20.0).
+        joint_val = vd + (CFG.get('lambda_thermal', 20.0) / 10.0) * vt
         
         history['val_dice'].append(vd)
         history['val_thermal'].append(vt)
@@ -746,10 +758,10 @@ for epoch in tqdm(range(START_EPOCH, CFG['n_epochs'] + 1), desc='Training Epochs
         
         if joint_val < best_val_dice:
             best_val_dice = joint_val
-            torch.save({'encoder': encoder_base.state_dict(), 'mlp': mlp_base.state_dict()}, os.path.join(OUTPUT_DIR, 'thermamnerf_best.pth'))
-        
+            torch.save({'encoder': encoder_base.state_dict(), 'mlp': mlp_base.state_dict(), 'epoch': epoch}, os.path.join(OUTPUT_DIR, 'thermamnerf_best.pth'))
+
         # Also always save the latest model
-        torch.save({'encoder': encoder_base.state_dict(), 'mlp': mlp_base.state_dict()}, os.path.join(OUTPUT_DIR, 'thermamnerf_latest.pth'))
+        torch.save({'encoder': encoder_base.state_dict(), 'mlp': mlp_base.state_dict(), 'epoch': epoch}, os.path.join(OUTPUT_DIR, 'thermamnerf_latest.pth'))
         
         print(f'Epoch {epoch:03d}/{CFG["n_epochs"]} | ' \
               f'Train Loss: {mean_train:.4f} | ' \
@@ -761,7 +773,12 @@ for epoch in tqdm(range(START_EPOCH, CFG['n_epochs'] + 1), desc='Training Epochs
               f'λ_tv: {cfg_step["lambda_tv"]:.4f}')
 
 
-# ── Post-training visualisation & export (will not open interactive windows)
+# ── Post-training audit: ALL patients (train/val/test) ────────────────────────
+#   Geometry : Dice / IoU  (rendered silhouette vs GT mask)
+#   Thermal  : pixel accuracy of the rendered thermal vs the GT TIFF (both 128x128,
+#              apples-to-apples), measured in °C over the GT breast region (foreground),
+#              reported per-view per-patient (CSV + figure) and for the full cohort.
+#   The held-out TEST split is the unbiased estimate; train/val are shown for reference.
 if IS_MAIN:
     try:
         ckpt = torch.load(os.path.join(OUTPUT_DIR, 'thermamnerf_best.pth'), map_location=DEVICE)
@@ -769,98 +786,201 @@ if IS_MAIN:
         mlp_base.load_state_dict(ckpt['mlp'])
         encoder_base.eval(); mlp_base.eval()
         alpha_final = float(CFG['pos_enc_L'])
-        
-        all_val_dice = []
-        all_val_iou  = []
-        patient_ids  = []
-        
-        # test_patients are sealed — never used for checkpointing or hyperparameter decisions.
-        print(f'\nStarting held-out test audit ({len(test_patients)} patients)...')
-        full_ds = BreastThermDataset(test_patients, CFG)
-        for idx in tqdm(range(len(full_ds)), desc='Test Audit'):
-            sample      = full_ds[idx]
-            tiffs_norm  = sample['tiffs_norm'].to(DEVICE)
-            tiffs_abs   = sample['tiffs_abs'].to(DEVICE)
-            masks       = sample['masks'].to(DEVICE)
-            patient_id  = sample['patient_id']
-            patient_ids.append(patient_id)
-            
+
+        TOL_C = (0.5, 1.0)   # °C tolerances defining "pixel accuracy"
+
+        audit_groups = [('train', train_patients),
+                        ('val',   val_patients),
+                        ('test',  test_patients)]
+        per_split = {s: {'ids': [], 'dice': [], 'iou': [],
+                         'mae_c': [], 'rmse_c': [], 'acc05': [], 'acc10': [],
+                         'w05': 0, 'w10': 0, 'npix': 0} for s, _ in audit_groups}
+        view_rows = []   # per-view per-patient rows for the CSV
+
+        def _audit_one(sample, split_name):
+            tiffs_norm = sample['tiffs_norm'].to(DEVICE)
+            masks      = sample['masks'].to(DEVICE)
+            tiffs_abs  = sample['tiffs_abs']          # °C, CPU, already resized to 128x128
+            tmins, tmaxs = sample['tmin'], sample['tmax']
+            patient_id = sample['patient_id']
             fig, axes = plt.subplots(3, 5, figsize=(18, 10))
-            dice_scores = []
-            iou_scores  = []
+            v_dice, v_iou, v_mae, v_rmse, v_a05, v_a10 = [], [], [], [], [], []
+            w05 = w10 = npix = 0
             for v, vname in enumerate(CFG['view_names']):
                 angle = CFG['view_angles_deg'][v]
                 rm, rt = render_view(encoder_base, mlp_base, tiffs_norm, masks, v, CFG, DEVICE, alpha=alpha_final)
                 gt_mask = masks[v].cpu().numpy()
-                gt_temp = tiffs_norm[v].cpu().numpy()
                 pred_m  = rm.cpu().numpy()
-                pred_t  = rt.cpu().numpy()
-                
+                pred_n  = rt.cpu().numpy()                       # rendered thermal, normalised [0,1]
+                gt_c    = tiffs_abs[v].numpy()                   # GT TIFF in °C (128x128)
+                tmin_v, tmax_v = float(tmins[v]), float(tmaxs[v])
+                pred_c  = pred_n * (tmax_v - tmin_v) + tmin_v     # de-normalise rendered thermal to °C
+
+                # --- geometry ---
                 pred_bin = (pred_m > 0.5).astype(np.float32)
                 inter    = (pred_bin * gt_mask).sum()
                 union    = pred_bin.sum() + gt_mask.sum() - inter
-                
                 dsc      = 2 * inter / (pred_bin.sum() + gt_mask.sum() + 1e-6)
                 iou      = inter / (union + 1e-6)
-                
-                dice_scores.append(dsc)
-                iou_scores.append(iou)
-                
+
+                # --- thermal pixel accuracy (over GT breast foreground) ---
+                fg = gt_mask > 0.5
+                if fg.sum() > 0:
+                    err_c  = np.abs(pred_c[fg] - gt_c[fg])
+                    mae_c  = float(err_c.mean())
+                    rmse_c = float(np.sqrt((err_c ** 2).mean()))
+                    a05    = float((err_c <= TOL_C[0]).mean() * 100.0)
+                    a10    = float((err_c <= TOL_C[1]).mean() * 100.0)
+                    w05   += int((err_c <= TOL_C[0]).sum())
+                    w10   += int((err_c <= TOL_C[1]).sum())
+                    npix  += int(fg.sum())
+                else:
+                    mae_c = rmse_c = a05 = a10 = float('nan')
+
+                v_dice.append(dsc); v_iou.append(iou)
+                v_mae.append(mae_c); v_rmse.append(rmse_c); v_a05.append(a05); v_a10.append(a10)
+                view_rows.append([patient_id, split_name, vname, f'{dsc:.4f}', f'{iou:.4f}',
+                                  f'{mae_c:.4f}', f'{rmse_c:.4f}', f'{a05:.2f}', f'{a10:.2f}'])
+
                 axes[0, v].imshow(gt_mask, cmap='gray')
-                axes[0, v].set_title(f'GT Mask\n{vname} ({angle}°)', fontsize=9)
-                axes[0, v].axis('off')
-                
+                axes[0, v].set_title(f'GT Mask\n{vname} ({angle}°)', fontsize=9); axes[0, v].axis('off')
                 axes[1, v].imshow(pred_m, cmap='gray', vmin=0, vmax=1)
-                axes[1, v].set_title(f'Rendered Mask\nDice={dsc:.3f} | IoU={iou:.3f}', color='green' if dsc > 0.85 else 'red', fontsize=9)
-                axes[1, v].axis('off')
-                
-                axes[2, v].imshow(pred_t, cmap='inferno', vmin=0, vmax=1)
-                axes[2, v].set_title('Rendered Thermal', fontsize=9)
+                axes[1, v].set_title(f'Rendered Mask\nDice={dsc:.3f} | IoU={iou:.3f}',
+                                     color='green' if dsc > 0.85 else 'red', fontsize=9); axes[1, v].axis('off')
+                axes[2, v].imshow(pred_n, cmap='inferno', vmin=0, vmax=1)
+                axes[2, v].set_title(f'Rendered Thermal\nMAE={mae_c:.2f}°C | Acc@1°C={a10:.0f}%', fontsize=9)
                 axes[2, v].axis('off')
-            
-            mean_dsc = np.mean(dice_scores)
-            mean_iou = np.mean(iou_scores)
-            all_val_dice.append(mean_dsc)
-            all_val_iou.append(mean_iou)
-            
-            plt.suptitle(f'Projection Audit: {patient_id} | Mean Dice: {mean_dsc:.3f} | Mean IoU: {mean_iou:.3f}', fontsize=12)
+
+            mean_dsc, mean_iou = float(np.mean(v_dice)), float(np.mean(v_iou))
+            mean_mae, mean_a10 = float(np.nanmean(v_mae)), float(np.nanmean(v_a10))
+            plt.suptitle(f'[{split_name.upper()}] {patient_id} | Dice {mean_dsc:.3f} | IoU {mean_iou:.3f} | '
+                         f'Thermal MAE {mean_mae:.2f}°C | Acc@1°C {mean_a10:.0f}%', fontsize=12)
             plt.tight_layout()
-            plt.savefig(os.path.join(OUTPUT_DIR, f'audit_{patient_id}.png'), dpi=120)
+            plt.savefig(os.path.join(OUTPUT_DIR, f'audit_{split_name}_{patient_id}.png'), dpi=120)
             plt.close(fig)
-            
-            print(f'Patient {patient_id} | Mean Dice: {mean_dsc:.3f} | Mean IoU: {mean_iou:.3f}')
-            
-        print(f'\n--- Held-Out Test Set Performance ({len(full_ds)} patients) ---')
-        print(f'Overall Average Dice: {np.mean(all_val_dice):.4f}')
-        print(f'Overall Average IoU:  {np.mean(all_val_iou):.4f}')
-        
-        # --- Cohort Performance Plot ---
-        fig, ax = plt.subplots(figsize=(12, 6))
-        x_indices = np.arange(len(patient_ids))
-        width = 0.35
-        
-        ax.bar(x_indices - width/2, all_val_dice, width, label='Dice Score', color='blue', alpha=0.7)
-        ax.bar(x_indices + width/2, all_val_iou, width, label='IoU Score', color='green', alpha=0.7)
-        
-        ax.set_xlabel('Patients')
-        ax.set_ylabel('Score')
-        ax.set_title('Test-Set Performance: Dice & IoU per Patient (held-out)')
-        ax.set_xticks(x_indices)
-        ax.set_xticklabels(patient_ids, rotation=45, ha='right', fontsize=8)
-        ax.legend()
-        ax.grid(axis='y', linestyle='--', alpha=0.7)
-        ax.set_ylim(0.0, 1.0)
-        
+            return dict(pid=patient_id, dice=mean_dsc, iou=mean_iou,
+                        mae=mean_mae, rmse=float(np.nanmean(v_rmse)),
+                        a05=float(np.nanmean(v_a05)), a10=mean_a10,
+                        w05=w05, w10=w10, npix=npix)
+
+        for split_name, plist in audit_groups:
+            if not plist:
+                continue
+            ds_split = BreastThermDataset(plist, CFG)
+            print(f'\nAuditing {split_name} split ({len(plist)} patients)...')
+            for idx in tqdm(range(len(ds_split)), desc=f'{split_name} audit'):
+                r  = _audit_one(ds_split[idx], split_name)
+                ps = per_split[split_name]
+                ps['ids'].append(r['pid']);  ps['dice'].append(r['dice']);  ps['iou'].append(r['iou'])
+                ps['mae_c'].append(r['mae']); ps['rmse_c'].append(r['rmse'])
+                ps['acc05'].append(r['a05']); ps['acc10'].append(r['a10'])
+                ps['w05'] += r['w05']; ps['w10'] += r['w10']; ps['npix'] += r['npix']
+                print(f"  [{split_name}] {r['pid']} | Dice {r['dice']:.3f} | IoU {r['iou']:.3f} | "
+                      f"MAE {r['mae']:.2f}°C | Acc@1°C {r['a10']:.0f}%")
+
+        # ── Per-view per-patient CSV ──────────────────────────────────
+        csv_path = os.path.join(OUTPUT_DIR, 'thermal_pixel_accuracy_per_view.csv')
+        with open(csv_path, 'w', newline='') as fcsv:
+            wcsv = csv.writer(fcsv)
+            wcsv.writerow(['patient_id', 'split', 'view', 'dice', 'iou',
+                           'thermal_MAE_C', 'thermal_RMSE_C', 'pix_acc_0.5C_%', 'pix_acc_1.0C_%'])
+            wcsv.writerows(view_rows)
+        print(f'\nPer-view metrics written to {csv_path}')
+
+        # ── Numeric summary: per split + full cohort ──────────────────
+        def _ms(xs):
+            xs = [x for x in xs if not (isinstance(x, float) and math.isnan(x))]
+            return (np.mean(xs), np.std(xs)) if xs else (float('nan'), float('nan'))
+        print('\n=================== COHORT PERFORMANCE ===================')
+        print(' split    n  |   Dice   |   IoU    | MAE °C | Acc@0.5°C | Acc@1°C')
+        for s in ['train', 'val', 'test']:
+            ps = per_split[s]
+            if not ps['ids']:
+                continue
+            dm = _ms(ps['dice'])[0]; im = _ms(ps['iou'])[0]; mm = _ms(ps['mae_c'])[0]
+            a05 = 100.0 * ps['w05'] / ps['npix'] if ps['npix'] else float('nan')   # micro pixel-accuracy
+            a10 = 100.0 * ps['w10'] / ps['npix'] if ps['npix'] else float('nan')
+            tag = '  <-- HELD-OUT' if s == 'test' else ''
+            print(f' {s:5s} {len(ps["ids"]):4d}  |  {dm:.4f} |  {im:.4f} | {mm:5.2f}  |  {a05:6.2f}%  | {a10:6.2f}%{tag}')
+        alld   = sum((per_split[s]['dice']  for s in per_split), [])
+        alli   = sum((per_split[s]['iou']   for s in per_split), [])
+        allmae = sum((per_split[s]['mae_c'] for s in per_split), [])
+        W05 = sum(per_split[s]['w05']  for s in per_split)
+        W10 = sum(per_split[s]['w10']  for s in per_split)
+        NP  = sum(per_split[s]['npix'] for s in per_split)
+        print(f' ALL   {len(alld):4d}  |  {_ms(alld)[0]:.4f} |  {_ms(alli)[0]:.4f} | '
+              f'{_ms(allmae)[0]:5.2f}  |  {100.0*W05/NP:6.2f}%  | {100.0*W10/NP:6.2f}%')
+        print('=========================================================')
+        print('Pixel accuracy = % of GT-breast pixels whose rendered °C is within tolerance of the GT TIFF.\n')
+
+        # ── Per-patient bar charts (Dice + thermal MAE), coloured by split ──
+        order   = ['train', 'val', 'test']
+        palette = {'train': '#7f7f7f', 'val': '#ff8c00', 'test': '#2ca02c'}
+        ids    = sum((per_split[s]['ids']   for s in order), [])
+        dvals  = sum((per_split[s]['dice']  for s in order), [])
+        mvals  = sum((per_split[s]['mae_c'] for s in order), [])
+        splits = sum(([s] * len(per_split[s]['ids']) for s in order), [])
+        bcol   = [palette[s] for s in splits]
+        x      = np.arange(len(ids))
+        for fname, vals, ylab, ttl, ylim in [
+            ('cohort_dice_by_split.png',        dvals, 'Mean Dice',
+             'Per-Patient Dice by Split (held-out test in green)', (0.0, 1.0)),
+            ('cohort_thermal_mae_by_split.png', mvals, 'Thermal MAE (°C)',
+             'Per-Patient Thermal MAE by Split (lower is better)', None)]:
+            fig, ax = plt.subplots(figsize=(max(12, len(ids) * 0.16), 6))
+            ax.bar(x, vals, color=bcol, alpha=0.85)
+            b = 0
+            for s in order:
+                n = len(per_split[s]['ids'])
+                if n and b > 0:
+                    ax.axvline(b - 0.5, color='k', ls='--', lw=0.8, alpha=0.5)
+                b += n
+            handles = [plt.Rectangle((0, 0), 1, 1, color=palette[s]) for s in order]
+            ax.legend(handles, order)
+            ax.set_xlabel('Patients (grouped by split)'); ax.set_ylabel(ylab); ax.set_title(ttl)
+            ax.set_xticks(x); ax.set_xticklabels(ids, rotation=90, fontsize=5)
+            if ylim:
+                ax.set_ylim(*ylim)
+            ax.grid(axis='y', ls='--', alpha=0.6)
+            plt.tight_layout()
+            plt.savefig(os.path.join(OUTPUT_DIR, fname), dpi=150)
+            plt.close(fig)
+
+        # ── Split summary: geometry + thermal pixel accuracy ──────────
+        fig, (axg, axt) = plt.subplots(1, 2, figsize=(14, 5))
+        xs = np.arange(len(order)); wbar = 0.35
+        axg.bar(xs - wbar/2, [_ms(per_split[s]['dice'])[0] for s in order], wbar,
+                yerr=[_ms(per_split[s]['dice'])[1] for s in order], capsize=4, label='Dice', color='#1f77b4')
+        axg.bar(xs + wbar/2, [_ms(per_split[s]['iou'])[0] for s in order], wbar,
+                yerr=[_ms(per_split[s]['iou'])[1] for s in order], capsize=4, label='IoU', color='#2ca02c')
+        axg.set_xticks(xs); axg.set_xticklabels([f'{s}\n(n={len(per_split[s]["ids"])})' for s in order])
+        axg.set_ylim(0, 1); axg.set_ylabel('Score'); axg.set_title('Geometry: Dice / IoU')
+        axg.legend(); axg.grid(axis='y', ls='--', alpha=0.6)
+        a05s = [100.0*per_split[s]['w05']/per_split[s]['npix'] if per_split[s]['npix'] else 0 for s in order]
+        a10s = [100.0*per_split[s]['w10']/per_split[s]['npix'] if per_split[s]['npix'] else 0 for s in order]
+        axt.bar(xs - wbar/2, a05s, wbar, label='Acc @0.5°C', color='#ff7f0e')
+        axt.bar(xs + wbar/2, a10s, wbar, label='Acc @1.0°C', color='#d62728')
+        axt.set_xticks(xs); axt.set_xticklabels([f'{s}\n(n={len(per_split[s]["ids"])})' for s in order])
+        axt.set_ylim(0, 100); axt.set_ylabel('Pixel accuracy (%)')
+        axt.set_title('Thermal: pixel accuracy vs GT TIFF'); axt.legend(); axt.grid(axis='y', ls='--', alpha=0.6)
+        plt.suptitle('Held-out test is the unbiased estimate')
         plt.tight_layout()
-        plt.savefig(os.path.join(OUTPUT_DIR, 'testset_performance_plot.png'), dpi=150)
+        plt.savefig(os.path.join(OUTPUT_DIR, 'split_summary.png'), dpi=150)
         plt.close(fig)
-        print('Test-set performance plot saved to testset_performance_plot.png')
-        
+
+        print('Saved: split_summary.png, cohort_dice_by_split.png, cohort_thermal_mae_by_split.png, '
+              'thermal_pixel_accuracy_per_view.csv, and per-patient audit_<split>_<id>.png')
+
     except Exception as e:
+        import traceback; traceback.print_exc()
         print('Projection audit skipped:', e)
 
 def extract_3d_volume(encoder, mlp, tiffs_norm, masks, cfg, device,
-                       resolution: int = None, chunk: int = 8192) -> tuple:
+                       resolution: int = None, chunk: int = 8192,
+                       tmin: float = None, tmax: float = None) -> tuple:
+    # T_grid is in [0,1] normalised space. To recover °C for Stage 4 FEM:
+    #   T_celsius = T_grid * (tmax - tmin) + tmin
+    # Pass per-patient tmin/tmax from the dataset batch (sample['tmin'], sample['tmax']).
     R = resolution or cfg['mc_resolution']
     linspace = torch.linspace(-1, 1, R, device=device)
     zz, yy, xx = torch.meshgrid(linspace, linspace, linspace, indexing='ij')
@@ -914,35 +1034,31 @@ def export_ply(verts, faces, colors_rgb, filepath, temperatures=None):
 # ── Training Curves ──────────────────────────────────────────────────────────
 if IS_MAIN:
     try:
-        fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+        fig, axes = plt.subplots(2, 3, figsize=(20, 10))
 
-        # Train Loss
-        axes[0, 0].plot(history['train_loss'], color='blue', label='Train Loss')
-        axes[0, 0].set_title('Train Loss (Total)')
-        axes[0, 0].set_xlabel('Epoch')
-        axes[0, 0].grid(True)
+        axes[0, 0].plot(history['train_loss'], color='blue')
+        axes[0, 0].set_title('Train Loss (Total)'); axes[0, 0].set_xlabel('Epoch'); axes[0, 0].grid(True)
 
-        # Val Dice Score (1 - Dice Loss)
         val_dice_scores = [1 - d for d in history['val_dice']]
         axes[0, 1].plot(val_dice_scores, color='green', marker='o', markersize=3)
-        axes[0, 1].set_title('Val Dice Score')
-        axes[0, 1].set_xlabel('Epoch')
-        axes[0, 1].set_ylim(0.0, 1.0)
-        axes[0, 1].grid(True)
+        axes[0, 1].set_title('Val Dice Score'); axes[0, 1].set_xlabel('Epoch')
+        axes[0, 1].set_ylim(0.0, 1.0); axes[0, 1].grid(True)
 
-        # Val Joint Metric (Checkpoint metric)
+        axes[0, 2].plot(history['val_iou'], color='teal', marker='o', markersize=3)
+        axes[0, 2].set_title('Val IoU'); axes[0, 2].set_xlabel('Epoch')
+        axes[0, 2].set_ylim(0.0, 1.0); axes[0, 2].grid(True)
+
         axes[1, 0].plot(history['val_joint'], color='orange', marker='o', markersize=3)
-        axes[1, 0].set_title('Val Joint Metric (vd + scaled_vt)')
-        axes[1, 0].set_xlabel('Epoch')
-        axes[1, 0].grid(True)
+        axes[1, 0].set_title('Val Joint Metric (vd + 2·vt) — checkpoint criterion')
+        axes[1, 0].set_xlabel('Epoch'); axes[1, 0].grid(True)
 
-        # Val Thermal MSE
         axes[1, 1].plot(history['val_thermal'], color='red', marker='o', markersize=3)
-        axes[1, 1].set_title('Val Thermal MSE')
-        axes[1, 1].set_xlabel('Epoch')
-        axes[1, 1].grid(True)
+        axes[1, 1].set_title('Val Thermal MSE'); axes[1, 1].set_xlabel('Epoch'); axes[1, 1].grid(True)
 
-        plt.suptitle('TherMAM-NeRF v2.2 Joint Training (λ_bg=2.0, λ_therm=10.0)')
+        axes[1, 2].plot(history['lr'], color='purple')
+        axes[1, 2].set_title('Learning Rate (cosine)'); axes[1, 2].set_xlabel('Epoch'); axes[1, 2].grid(True)
+
+        plt.suptitle('TherMAM-NeRF v3.0 (finalized) — Joint Training (λ_bg=2.0, λ_therm=20.0)')
         plt.tight_layout()
         plt.savefig(os.path.join(OUTPUT_DIR, 'training_curves.png'), dpi=120)
         plt.close(fig)
