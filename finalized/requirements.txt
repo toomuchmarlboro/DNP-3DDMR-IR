@@ -1,0 +1,63 @@
+# ============================================================
+# DNP-3DDMR-IR Pipeline — Requirements
+# Stages 1-4: data prep → U-Net segmentation →
+#             TherMAM-NeRF 3D reconstruction → FEM/LM inverse
+#
+# Install pip packages:
+#   pip install -r requirements.txt
+#
+# PyTorch (CUDA 13.0 build used in development):
+#   pip install torch==2.11.0+cu130 torchvision==0.26.0+cu130 \
+#       --index-url https://download.pytorch.org/whl/cu130
+#
+# System-managed packages (install via conda or apt — see note below):
+#   mpi4py, gmsh, fenics-dolfinx, petsc4py, ufl
+# ============================================================
+
+# ── Core numerics ────────────────────────────────────────────
+numpy==2.4.6
+scipy==1.17.1
+
+# ── Deep learning (all stages) ───────────────────────────────
+# torch and torchvision are CUDA-version-specific; install separately
+# (see header). Listed here for reference only.
+# torch==2.11.0+cu130
+# torchvision==0.26.0+cu130
+
+# ── Image I/O ────────────────────────────────────────────────
+tifffile==2026.3.3
+opencv-python==4.13.0
+Pillow==12.2.0
+
+# ── Stage 2 — Attention U-Net segmentation ───────────────────
+albumentations==2.0.8
+scikit-learn==1.8.0
+
+# ── Stage 3 — TherMAM-NeRF 3D reconstruction ─────────────────
+scikit-image==0.26.0       # marching_cubes
+
+# ── Visualisation (all stages) ───────────────────────────────
+matplotlib==3.10.9
+plotly==6.7.0
+pandas==2.3.3
+
+# ── Utilities (all stages) ───────────────────────────────────
+tqdm==4.67.3
+
+# ============================================================
+# System-managed dependencies (NOT pip-installable)
+# ── Stage 4 — FEM/LM inverse (FEniCS stack) ─────────────────
+#
+# Install via conda (recommended):
+#   conda install -c conda-forge fenics-dolfinx petsc4py mpi4py
+#
+# Or via apt (Ubuntu/Debian):
+#   sudo apt install python3-dolfinx python3-mpi4py
+#
+# Packages needed:
+#   dolfinx        — FEM solver (FEniCS-X)
+#   ufl            — Unified Form Language (FEniCS DSL)
+#   petsc4py       — PETSc linear algebra backend
+#   mpi4py         — MPI parallelism for FEniCS
+#   gmsh           — mesh generation (install via: pip install gmsh)
+# ============================================================

@@ -1,6 +1,6 @@
-# Stage 2 — U-Net Breast Region Segmentation
+# Stage 2 — Attention U-Net Breast Region Segmentation
 
-**Source notebook:** `UNET_Segmentation/Masking and Segmentation/UNET_Segmentation_newest.ipynb`
+**Source notebook:** `finalized/2_unetsegmentation_fixed.ipynb`
 
 ---
 
@@ -19,137 +19,221 @@ This stage trains a **semantic segmentation** model to automatically delineate t
 
 Each patient acquisition is stored as a 16-bit TIFF file containing calibrated pixel-level temperature values $P_{i,j}$. Before entering the network, every image is:
 
-1. **Resized** to a canonical spatial resolution of $256 \times 256$ pixels using area interpolation to maintain thermal energy.
+1. **Resized** to a canonical spatial resolution of $256 \times 256$ pixels using area interpolation (`cv2.INTER_AREA`) to maintain thermal energy density.
 2. **Min–max normalised** to the $[0, 1]$ range:
 
 $$
-m_{i,j} = \frac{P_{i,j} - \min(P)}{\max(P) - \min(P)}
+m_{i,j} = \frac{P_{i,j} - \min(P)}{\max(P) - \min(P) + \varepsilon}
 $$
 
-where $P \in \mathbb{R}^{H \times W}$ denotes the full raw pixel array. This normalisation is theoretically crucial because it ensures that the input feature space lies within a standardized manifold, preventing exploding gradients and allowing the convolutional kernels to learn morphological features invariant to the absolute patient baseline temperature. 
+where $P \in \mathbb{R}^{H \times W}$ denotes the full raw pixel array and $\varepsilon$ prevents division by zero for constant-valued images.
 
 ### 2.2 Ground-Truth Mask Annotation Workflow
 
-To train the U-Net via supervised learning, ground-truth binary masks are required to construct the target empirical distribution $y_i \in \{0, 1\}$. These were generated manually via an interactive polygon annotation loop (`MANUAL MASKING.ipynb`).
+Ground-truth binary masks were generated manually via an interactive polygon annotation loop (`MANUAL MASKING.ipynb`). The annotation protocol enforces strict anatomical priors:
 
-For each normalised image, a human annotator delineates a closed polygon $\mathcal{P}$ bounding the breast tissue. The annotation protocol enforces strict anatomical priors:
 1. **Superior boundary:** Exclusion of the neck and upper torso.
-2. **Lateral boundary:** Truncation at the lateral fold to prevent axillary (armpit) leakage.
+2. **Lateral boundary:** Truncation at the lateral fold to prevent axillary leakage.
 3. **Inferior boundary:** Consistent tracing of the inframammary fold (IMF).
 
-Once the polygon vertices $\mathcal{P} = \{(x_k, y_k)\}_{k=1}^N$ are defined, the continuous polygon is rasterized into a discrete binary mask using the scan-line fill algorithm (implemented via `cv2.fillPoly`). The resulting binary masks ($256 \times 256$ pixels) represent the ground-truth morphological silhouette of the breast and are saved as PNG files, perfectly mirroring the file hierarchy of the source TIFFs.
+Once the polygon vertices $\mathcal{P} = \{(x_k, y_k)\}_{k=1}^N$ are defined, the polygon is rasterized into a discrete binary mask using `cv2.fillPoly`. The resulting $256 \times 256$ binary masks are saved as PNG files, mirroring the file hierarchy of the source TIFFs.
 
 ### 2.3 Dataset Splitting
 
-Following the experimental protocol described in the reference paper (§3.3), the dataset is partitioned as:
+The full dataset (162 labelled images) is partitioned into a **fixed held-out test set** and a **training pool**. The split is performed once before any training and seeded for reproducibility (`SEED = 42`):
 
-| Split | Fraction | Samples |
-|:---:|:---:|:---:|
-| Training | 78 % | 126 |
-| Test | 22 % | 36 |
-| **Total** | 100 % | **162** |
+```python
+n_train = int(0.78 * n_total)   # 126
+n_test  = n_total - n_train     # 36
+train_set, test_set = random_split(full_dataset, [n_train, n_test],
+                                   generator=torch.Generator().manual_seed(SEED))
+```
 
----
+| Split | Fraction | Samples | Role |
+|:---:|:---:|:---:|:---|
+| Training pool | 78 % | 126 | 5-fold CV — training and validation |
+| Held-out test | 22 % | 36 | Final unbiased evaluation only |
+| **Total** | 100 % | **162** | |
 
-## 3. Data Augmentation Theory
-
-To mitigate overfitting and expand the empirical risk minimization (ERM) space on the limited medical dataset, lightweight affine and photometric augmentations are applied to the training distribution $p_{\text{data}}(x, y)$.
-
-Let $\mathcal{T}$ be a set of stochastic transformation functions. We augment the dataset by sampling $T \sim \mathcal{T}$ such that the model minimizes the expected loss:
-$$ \min_\theta \mathbb{E}_{(x,y)\sim p_{\text{data}}, T \sim \mathcal{T}} [\mathcal{L}(f_\theta(T(x)), T(y))] $$
-
-The specific transformations applied are:
-1. **Horizontal flip:** A geometric transformation $T_{\text{flip}}(x_{i,j}) = x_{W-i, j}$. Applied with $p=0.5$ identically to both the image $x$ and mask $y$.
-2. **Brightness jitter:** A photometric transformation $T_{\text{bright}}(x) = \gamma x$ where $\gamma \sim \text{Uniform}[0.8,\, 1.2]$. Applied only to the image $x$ to simulate varying ambient thermal conditions.
+The held-out test set is never used during model selection, hyperparameter tuning, or early stopping.
 
 ---
 
-## 4. Network Architecture (Phase 2)
+## 3. Data Augmentation (Phase 1.2)
 
-### 4.1 U-Net Encoder–Decoder Theory
+To mitigate overfitting on the limited medical dataset, the following stochastic transformations are applied per training batch via **Albumentations**:
 
-The model is a **4-level encoder–decoder U-Net**. The U-Net architecture is characterized by its contracting path (to capture high-level semantic context) and an expanding path (to enable precise localization).
+| Transform | Parameters | Applied to |
+|---|---|---|
+| `HorizontalFlip` | $p = 0.5$ | image + mask |
+| `ShiftScaleRotate` | shift 5 %, scale 5 %, rotate ±15° | image + mask |
+| `ElasticTransform` | $\alpha=1$, $\sigma=50$ | image + mask |
+| `RandomBrightnessContrast` | $p = 0.5$ | image only |
+| `CoarseDropout` | 8 holes, $16 \times 16$ px | image only |
 
-Each stage of the contracting path can be represented as a composite function $\mathcal{F}_{\text{down}}^{(l)}$ mapping features from level $l-1$ to level $l$:
-$$ \mathbf{h}^{(l)} = \text{MaxPool}\left( \text{ReLU}\left( \text{BN}\left( \mathbf{W}_2^{(l)} * \text{ReLU}\left( \text{BN}\left( \mathbf{W}_1^{(l)} * \mathbf{h}^{(l-1)} \right)\right) \right)\right) \right) $$
-
-where $*$ denotes the convolution operator.
-
-The expanding path concatenates high-resolution features $\mathbf{h}^{(l)}$ from the contracting path with upsampled features $\tilde{\mathbf{h}}^{(l)}$ via a skip connection, enabling the recovery of fine spatial details lost during pooling:
-$$ \tilde{\mathbf{h}}^{(l-1)} = \mathcal{F}_{\text{up}}^{(l)}\left( \tilde{\mathbf{h}}^{(l)} \oplus \mathbf{h}^{(l-1)} \right) $$
-
-where $\oplus$ represents feature-map concatenation along the channel dimension.
-
-### 4.2 Weight Initialisation
-
-To ensure stable signal propagation and prevent the vanishing/exploding variance problem in deep ReLU networks, all convolutional layers use **Kaiming Normal** (He) initialisation. If $n_l$ is the fan-in (number of input units) of layer $l$, the weights are initialized as:
-$$ \mathbf{W}^{(l)} \sim \mathcal{N}\!\left(0,\; \frac{2}{n_l}\right) $$
+Geometric transforms are applied identically to image and mask to preserve spatial correspondence. Photometric transforms are applied to the image only, as masks are binary.
 
 ---
 
-## 5. Loss Function Topology
+## 4. Network Architecture — Attention U-Net (Phase 2)
 
-The loss is a **weighted composite** of Binary Cross-Entropy with Logits (BCE) and a soft Dice loss. This hybrid approach leverages BCE for smooth pixel-level gradient propagation while using Dice loss to explicitly maximize the intersection-over-union metric, which is robust to class imbalance (e.g., small breast regions in lateral views).
+### 4.1 Architecture Overview
 
-$$
-\mathcal{L} = \alpha \cdot \mathcal{L}_{\text{BCE}} + \beta \cdot \mathcal{L}_{\text{Dice}}
-$$
+The model is a **4-level Attention U-Net** with skip-connection attention gates at every decoder level. Attention gates learn to suppress irrelevant background activations before the skip-connection features are concatenated, focusing capacity on the breast silhouette.
 
-with $\alpha = 0.6$ and $\beta = 0.4$.
-
-### 5.1 BCE with Logits
-
-BCE measures the Kullback-Leibler divergence between the empirical distribution (ground truth $y_i \in \{0,1\}$) and the predicted Bernoulli distribution parameterised by $p_i = \sigma(z_i)$, where $z_i$ are the raw network logits:
+The encoder contracting path applies at each level $l$:
 
 $$
-\mathcal{L}_{\text{BCE}} = -\frac{1}{N}\sum_{i=1}^N \left[ y_i \log p_i + (1 - y_i)\log(1 - p_i) \right]
+\mathbf{h}^{(l)} = \text{MaxPool}\!\left(\text{ReLU}\!\left(\text{BN}\!\left(\mathbf{W}_2^{(l)} * \text{ReLU}\!\left(\text{BN}\!\left(\mathbf{W}_1^{(l)} * \mathbf{h}^{(l-1)}\right)\right)\right)\right)\right)
 $$
+
+Each attention gate computes a soft spatial mask $\psi \in [0, 1]$:
+
+$$
+\psi = \sigma\!\left(\mathbf{W}_\psi \cdot \text{ReLU}\!\left(\mathbf{W}_g\, g + \mathbf{W}_x\, x\right)\right)
+$$
+
+where $g$ is the upsampled decoder feature and $x$ is the encoder skip-connection feature. The gated output $x \cdot \psi$ replaces the raw skip connection, suppressing background regions before concatenation.
+
+### 4.2 Channel Flow
+
+| Stage | In → Out channels | Notes |
+|---|---|---|
+| Encoder 1 | 1 → 64 | No dropout |
+| Encoder 2 | 64 → 128 | No dropout |
+| Encoder 3 | 128 → 256 | Dropout 0.1 |
+| Encoder 4 | 256 → 512 | Dropout 0.1 |
+| Bottleneck | 512 → 1024 | Dropout 0.2 |
+| Decoder 4 | 1024 → 512 | Attention + dropout 0.1 |
+| Decoder 3 | 512 → 256 | Attention + dropout 0.1 |
+| Decoder 2 | 256 → 128 | Attention |
+| Decoder 1 | 128 → 64 | Attention |
+| Output | 64 → 1 | Logits (no sigmoid in head) |
+
+Total trainable parameters: **31,388,013**.
+
+### 4.3 Weight Initialisation
+
+All convolutional layers use **Kaiming Normal** (He) initialisation. For a layer with fan-in $n_l$:
+
+$$
+\mathbf{W}^{(l)} \sim \mathcal{N}\!\left(0,\; \frac{2}{n_l}\right)
+$$
+
+BatchNorm weights are initialised to 1, biases to 0.
+
+---
+
+## 5. Loss Function
+
+The loss is a **Focal-Dice composite**:
+
+$$
+\mathcal{L} = 0.5 \cdot \mathcal{L}_{\text{Focal}} + 0.5 \cdot \mathcal{L}_{\text{Dice}}
+$$
+
+### 5.1 Focal Loss
+
+$$
+\mathcal{L}_{\text{Focal}} = -\frac{\alpha}{N}\sum_{i=1}^N (1 - p_i)^\gamma \left[ y_i \log p_i + (1-y_i)\log(1-p_i) \right]
+$$
+
+with $\alpha = 0.25$, $\gamma = 2.0$. The $(1-p_i)^\gamma$ modulating factor down-weights easy, correctly-classified background pixels and concentrates the gradient on hard foreground boundary pixels — particularly beneficial for class-imbalanced lateral views where the breast occupies a small fraction of the image.
 
 ### 5.2 Soft Dice Loss
-
-The Dice loss is a differentiable relaxation of the Sørensen–Dice index.
 
 $$
 \mathcal{L}_{\text{Dice}} = 1 - \frac{2 \sum_i p_i \cdot y_i + \varepsilon}{\sum_i p_i + \sum_i y_i + \varepsilon}
 $$
 
-where $\varepsilon = 10^{-6}$ is a Laplacian smoothing term preventing division by zero and stabilizing gradients when both prediction and ground truth are empty.
+with $\varepsilon = 10^{-6}$. Dice loss directly maximises volumetric overlap and is robust to the foreground/background pixel imbalance inherent in breast silhouette segmentation.
 
 ---
 
 ## 6. Evaluation Metric — Sørensen–Dice Coefficient
 
-The primary evaluation metric measures volumetric overlap:
-
 $$
-\text{Dice}(A, B) = \frac{2 |A \cap B|}{|A| + |B|} = \frac{2 \text{TP}}{2\text{TP} + \text{FP} + \text{FN}}
+\text{Dice}(A, B) = \frac{2 |A \cap B|}{|A| + |B|} = \frac{2\,\text{TP}}{2\,\text{TP} + \text{FP} + \text{FN}}
 $$
 
-where $A$ is the binarised prediction (threshold $t = 0.5$) and $B$ is the ground-truth mask.
+where $A$ is the binarised prediction at threshold $t = 0.5$ and $B$ is the ground-truth mask.
 
 ---
 
-## 7. Training Protocol and Convergence
+## 7. Training Protocol — 5-Fold Cross-Validation (Phase 2.2)
 
-Training was executed using the AdamW optimiser, which decouples weight decay from the adaptive gradient updates, improving generalization.
+5-fold CV is performed **exclusively within the 126-sample training pool**. The 36-sample test set is sealed until Section 9.
 
-| Parameter | Value |
+```python
+kfold = KFold(n_splits=5, shuffle=True, random_state=SEED)
+for fold, (train_ids, val_ids) in enumerate(kfold.split(range(len(train_set)))):
+    train_sub = torch.utils.data.Subset(train_set, train_ids)   # ~101 samples
+    val_sub   = torch.utils.data.Subset(train_set, val_ids)     # ~25 samples
+```
+
+Each fold trains a fresh model and saves the best-val-Dice checkpoint (`unet_fold_N.pth`).
+
+| Hyperparameter | Value |
 |---|---|
+| Device | `cuda:1` |
 | Optimiser | AdamW |
 | Learning rate $\eta_0$ | $3 \times 10^{-4}$ |
 | Weight decay | $1 \times 10^{-4}$ |
-| Scheduler | `ReduceLROnPlateau` |
+| LR scheduler | `ReduceLROnPlateau` (factor 0.5, patience 3, min $10^{-6}$) |
+| Batch size | 2 |
+| Max epochs | 120 |
+| Early-stopping patience | 12 epochs (no val-Dice improvement) |
+| AMP | Enabled (CUDA) |
+| Gradient clipping | max norm 1.0 |
 
-Early stopping triggered at epoch 40, achieving a **Test Dice of $\mathbf{0.8935 \pm 0.0542}$**.
+**5-Fold CV Results (within training pool, 126 samples):**
+
+| Fold | CV Train samples | CV Val samples | Best Val Dice | Early-stop epoch |
+|:---:|:---:|:---:|:---:|:---:|
+| 1 | 101 | 25 | 0.8772 | 56 |
+| 2 | 101 | 25 | 0.9197 | 94 |
+| 3 | 101 | 25 | 0.9206 | 86 |
+| 4 | 101 | 25 | 0.9051 | 46 |
+| 5 | 101 | 25 | 0.9087 | 41 |
+| **Mean ± SD** | | | **0.9063 ± 0.0157** | **64.6 ± 22.3** |
+
+> **Note:** These CV results are from the original notebook run where K-fold used `full_dataset`. After rerunning `finalized/2_unetsegmentation_fixed.ipynb` (which correctly restricts K-fold to `train_set`), these values will change slightly.
 
 ---
 
-## 8. Inference Pipeline — Automated Segmentation
+## 8. Inference Pipeline — 5-Model Ensemble (Phase 3)
 
-For inference, the network models a maximum a posteriori (MAP) estimation problem. The raw logits $z_i$ are passed through a sigmoid function to obtain posterior probabilities $P(y_i=1 | x)$. We estimate the optimal mask by thresholding:
-$$ \hat{y}_i = \begin{cases} 1 & \text{if } \sigma(z_i) \geq 0.5 \\ 0 & \text{otherwise} \end{cases} $$
+All 5 fold checkpoints are loaded and their sigmoid outputs are averaged before thresholding:
 
-To enforce topological priors (a breast should be a single continuous anatomical mass), a morphological post-processing step computes connected components and retains only the component $C_{\max}$ with the largest area:
-$$ C_{\max} = \arg\max_{C \in \mathcal{C}} \text{Area}(C) $$
+$$
+\hat{p}_i = \frac{1}{5} \sum_{k=1}^{5} \sigma\!\left(z_i^{(k)}\right), \qquad \hat{y}_i = \mathbf{1}\!\left[\hat{p}_i \geq 0.5\right]
+$$
 
-Finally, Canny edge detection isolates the morphological boundary $\partial C_{\max}$, which defines the geometric silhouette for 3D visual hull reconstruction in Stage 3.
+Ensemble averaging reduces variance from any single fold's idiosyncrasies and typically outperforms individual fold models.
+
+To enforce the topological prior that a breast is a single continuous anatomical mass, a morphological post-processing step retains only the largest connected component $C_{\max}$:
+
+$$
+C_{\max} = \arg\max_{C \in \mathcal{C}} \text{Area}(C)
+$$
+
+The final mask is saved at $128 \times 128$ resolution (downsampled with `cv2.INTER_NEAREST`) to match the NeRF pipeline input dimensions. Canny edge detection on $C_{\max}$ produces the geometric silhouette $\partial C_{\max}$ consumed by Stage 3.
+
+---
+
+## 9. Held-Out Test Set Evaluation
+
+After ensemble generation, the sealed 36-sample test set is evaluated once to obtain an unbiased performance estimate:
+
+```python
+# ensemble forward pass over test_set DataLoader
+ensemble_probs = mean([sigmoid(model_k(img)) for model_k in model_ensemble])
+pred_bin = (ensemble_probs > 0.5).float()
+```
+
+| Metric | Value |
+|---|---|
+| Ensemble Test Dice | TBD after rerun of fixed notebook |
+| Ensemble Test IoU | TBD after rerun of fixed notebook |
+
+The per-view breakdown (Table 4.4) is computed exclusively over the 36 held-out test masks (`test_mask_paths = {full_dataset.mask_paths[i] for i in test_set.indices}`), ensuring no training samples inflate the reported per-view numbers.
