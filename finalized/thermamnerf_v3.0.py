@@ -236,10 +236,13 @@ class BreastThermDataset(Dataset):
 import random
 random.seed(42)
 random.shuffle(patients)
-split = int(0.8 * len(patients))
-train_patients = patients[:split]
-val_patients   = patients[split:]
-print(f'Train: {len(train_patients)} | Val: {len(val_patients)}')
+n        = len(patients)
+n_train  = int(0.70 * n)
+n_val    = int(0.15 * n)
+train_patients = patients[:n_train]
+val_patients   = patients[n_train:n_train + n_val]
+test_patients  = patients[n_train + n_val:]
+print(f'Train: {len(train_patients)} | Val: {len(val_patients)} | Test: {len(test_patients)}')
 
 train_ds = BreastThermDataset(train_patients, CFG)
 val_ds   = BreastThermDataset(val_patients,   CFG)
@@ -771,11 +774,10 @@ if IS_MAIN:
         all_val_iou  = []
         patient_ids  = []
         
-        # FIX: audit only val_patients — train patients were seen during optimisation
-        # and would give an inflated score.
-        print(f'\nStarting val-set audit ({len(val_patients)} held-out patients)...')
-        full_ds = BreastThermDataset(val_patients, CFG)
-        for idx in tqdm(range(len(full_ds)), desc='Val-Set Audit'):
+        # test_patients are sealed — never used for checkpointing or hyperparameter decisions.
+        print(f'\nStarting held-out test audit ({len(test_patients)} patients)...')
+        full_ds = BreastThermDataset(test_patients, CFG)
+        for idx in tqdm(range(len(full_ds)), desc='Test Audit'):
             sample      = full_ds[idx]
             tiffs_norm  = sample['tiffs_norm'].to(DEVICE)
             tiffs_abs   = sample['tiffs_abs'].to(DEVICE)
@@ -828,7 +830,7 @@ if IS_MAIN:
             
             print(f'Patient {patient_id} | Mean Dice: {mean_dsc:.3f} | Mean IoU: {mean_iou:.3f}')
             
-        print(f'\n--- Held-Out Val Set Performance ({len(full_ds)} patients) ---')
+        print(f'\n--- Held-Out Test Set Performance ({len(full_ds)} patients) ---')
         print(f'Overall Average Dice: {np.mean(all_val_dice):.4f}')
         print(f'Overall Average IoU:  {np.mean(all_val_iou):.4f}')
         
@@ -842,7 +844,7 @@ if IS_MAIN:
         
         ax.set_xlabel('Patients')
         ax.set_ylabel('Score')
-        ax.set_title('Val-Set Performance: Dice & IoU per Patient (held-out)')
+        ax.set_title('Test-Set Performance: Dice & IoU per Patient (held-out)')
         ax.set_xticks(x_indices)
         ax.set_xticklabels(patient_ids, rotation=45, ha='right', fontsize=8)
         ax.legend()
@@ -850,9 +852,9 @@ if IS_MAIN:
         ax.set_ylim(0.0, 1.0)
         
         plt.tight_layout()
-        plt.savefig(os.path.join(OUTPUT_DIR, 'valset_performance_plot.png'), dpi=150)
+        plt.savefig(os.path.join(OUTPUT_DIR, 'testset_performance_plot.png'), dpi=150)
         plt.close(fig)
-        print('Val-set performance plot saved to valset_performance_plot.png')
+        print('Test-set performance plot saved to testset_performance_plot.png')
         
     except Exception as e:
         print('Projection audit skipped:', e)
