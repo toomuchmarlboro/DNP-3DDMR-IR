@@ -144,10 +144,10 @@ The classifier `quadrants(geo)`:
 4. **Breast centroid** $\mathbf{c}$: mean of all skin vertices on the affected breast.
 5. **Upper vs lower:** $y < c_y$ → upper (smaller Y = superior). $y > c_y$ → lower.
 6. **Outer vs inner:** away from $x_{mid}$ → outer (flips with affected side). Toward $x_{mid}$ → inner.
-7. **Central:** within 25 mm of $\mathbf{c}$ (subareolar approximation).
+7. **Central:** within 25 mm of the **nipple proxy** — the most anterior (minimum Z) vertex on the affected breast skin. This is the clinical definition of subareolar. *Bug fixed 2026-06-22: the original code used distance from the breast centroid $\mathbf{c}$, which lies inside the breast volume ~30–50 mm from every surface vertex, giving 0 Central vertices and silently biasing all C draws to UO (effective UO = 68 %).*
 8. **Contralateral:** all vertices on the other breast are labelled `'other'` (shown grey).
 
-The 25 mm central radius is intentionally approximate (the nipple position is not directly available from the surface mesh).
+The 25 mm central radius approximates the subareolar region (~8% of the anterior breast area at a ~75 mm breast radius: $\pi\times25^2/\pi\times75^2 \approx 11\%$, consistent with the 18% literature value given that central tumours are defined more liberally in epidemiological registries).
 
 ---
 
@@ -463,6 +463,209 @@ jupyter notebook FEM_LM_Inverse_v1.ipynb
 | `PennesCtx.__init__` (reads same mesh) | ~13 s |
 | LM iteration (4 Jacobian solves + 1 step = 5 FEM solves) | ~65 s |
 | Full LM (25 iterations, optimistic) | ~27 min |
+
+---
+
+---
+
+## 3.6.3 Convergence Analysis
+
+This section documents the numerical convergence properties of every computational layer in the pipeline: the FEM discretisation (mesh), the finite-difference Jacobian, the linear solver, and the nonlinear LM loop. Convergence failures at any layer contaminate all layers above it.
+
+---
+
+### a) Mesh Convergence (h-convergence)
+
+#### Motivation
+
+The FEM forward model maps tumour parameters $\boldsymbol{\beta}$ to a discrete surface temperature $\mathbf{T}^{FEM}(\boldsymbol{\beta})$. If the mesh is too coarse, the mapping contains discretisation error $\epsilon_h$:
+
+$$T^{FEM}_h(\boldsymbol{\beta}) = T^{exact}(\boldsymbol{\beta}) + \mathcal{O}(h^2)$$
+
+for Lagrange P1 elements on shape-regular tetrahedra. For the LM inverse, $\epsilon_h$ acts as an irreducible residual floor — LM cannot drive $S(\boldsymbol{\beta})$ below $\epsilon_h^2$ even at the true answer, causing premature termination.
+
+#### h-convergence study (reference data from Stage 4 mesh study)
+
+From `Stage4_InverseBioheat.md §6.5`, surface temperature was solved at four element sizes for the same patient and boundary conditions:
+
+| $h$ (mm) | Nodes (approx.) | Solve time (s) | Max $|T_h - T_{1mm}|$ (°C) | LM cost floor (°C²) |
+|---|---|---|---|---|
+| 5 | ~25 k | ~2 | ~0.08 | ~6.4×10⁻³ |
+| 3 | ~145 k | ~13 | ~0.02 | ~4×10⁻⁴ |
+| 2 | ~470 k | ~42 | ~0.006 | ~3.6×10⁻⁵ |
+| 1 | ~3.5 M | ~310 | 0 (reference) | ~0 |
+
+**Recommendation: $h = 3$ mm.** At this resolution the discretisation error (~0.02 °C) is well below the tumour signal (~0.5 °C peak rise from a 14 mm tumour) and below the LM convergence tolerance used (RMS < 0.01 °C in synthetic mode). Going to $h = 2$ mm increases solve time 3× with only marginal gain; $h = 5$ mm produces a cost floor (~0.08 °C² RMS) that blocks LM convergence.
+
+**Self-consistency note.** In `SYNTHETIC_TEST = True` mode, both the LM target $\mathbf{T}^{target} = \texttt{ctx.solve(plant)}$ and the LM model $\mathbf{T}^{FEM}(\boldsymbol{\beta})$ are evaluated on the **same** 3 mm mesh using the **same** `PennesCtx` object. Discretisation errors cancel identically — the cost floor is zero (up to PETSc solver tolerance $\sim 10^{-14}$ °C²), making synthetic validation a true algebraic self-consistency test.
+
+---
+
+### b) Finite-Difference Step Size
+
+#### Choice of step vector
+
+The Jacobian columns are computed by forward finite differences:
+
+$$J_{ij} \approx \frac{r_i(\boldsymbol{\beta} + h_j \mathbf{e}_j) - r_i(\boldsymbol{\beta})}{h_j}$$
+
+The step sizes used are:
+
+$$\mathbf{h} = [h_x, h_y, h_z, h_d] = [3, 3, 3, 2] \text{ mm}$$
+
+#### Justification
+
+Two competing errors govern the optimal $h$:
+
+1. **Truncation error** (large $h$): $J_{ij}^{FD} = J_{ij}^{true} + \mathcal{O}(h_j)$ — forward FD has first-order truncation bias. Reducing $h$ reduces this.
+
+2. **Cancellation/discretisation noise** (small $h$): When $h_j < \epsilon_h$ (mesh discretisation error), $r_i(\boldsymbol{\beta} + h_j\mathbf{e}_j) - r_i(\boldsymbol{\beta})$ is dominated by FEM discretisation noise, not by the true gradient. The signal-to-noise ratio collapses.
+
+The mesh element size is $h_{mesh} = 3$ mm. Using FD step sizes equal to one mesh element satisfies $h_j \approx h_{mesh}$, keeping both errors comparable:
+
+$$\frac{\partial T^{FEM}}{\partial x_t}\bigg|_{h_j = h_{mesh}} \approx \frac{\Delta T}{h_j} \approx \frac{0.05\text{°C}}{3\text{mm}} \approx 0.017\text{ °C/mm}$$
+
+This is well above the solver noise floor ($\sim 10^{-7}$ °C, from PETSc CG tolerance) and below the truncation bias scale.
+
+For diameter $d$: $h_d = 2$ mm was chosen slightly smaller because $T^{FEM}$ is more sensitive to $d$ than to lateral position (the sensitivity $s_d = 0.0045$ °C/step from §8.4 vs $s_{xyz} \approx 0.0002$ °C/step at the wrong-start local minimum). A smaller step reduces truncation bias where the signal is larger.
+
+#### Gradient sensitivity table (from §8.4 at LM solution)
+
+| Parameter | Step $h_j$ | Sensitivity $s_j$ (°C/step) | Status |
+|---|---|---|---|
+| $x_t$ | 3 mm | ~0.0002 | Identifiable near correct basin |
+| $y_t$ | 3 mm | ~0.0002 | Identifiable near correct basin |
+| $z_t$ | 3 mm | ~0.0002 | Weaker (diffusion smoothing) |
+| $d$ | 2 mm | ~0.0045 | Most identifiable |
+
+> **Note:** These values are measured at the *wrong* local minimum (d ≈ 3.4 mm) where x, y, z sensitivities appear flat because the tiny tumour generates almost no gradient anywhere. At the *correct* answer, sensitivities in all four parameters will be larger.
+
+---
+
+### c) Linear Solver Convergence (CG + GAMG)
+
+#### Solver configuration
+
+Every `PennesCtx.solve(β)` call assembles and solves the symmetric positive-definite linear system:
+
+$$\mathbf{A}(\boldsymbol{\beta})\,\mathbf{T} = \mathbf{b}(\boldsymbol{\beta})$$
+
+using **PETSc Conjugate Gradient (CG)** preconditioned by **GAMG** (Geometric-Algebraic MultiGrid).
+
+```python
+petsc_options = {'ksp_type': 'cg', 'pc_type': 'gamg'}
+```
+
+#### Why CG is appropriate
+
+The Pennes BVP weak form produces a matrix $\mathbf{A}$ that is:
+- **Symmetric**: $\int_\Omega k\nabla T\cdot\nabla v\,dV + \int_\Omega P(\mathbf{x})Tv\,dV + \int_{\Gamma_s} hTv\,dS$ — all bilinear forms are symmetric.
+- **Positive-definite**: perfusion term $P(\mathbf{x}) > 0$ everywhere (even in healthy tissue $P_h = 733$ W/(m³·K)), Robin BC $h > 0$ — both add positive-definite contributions on top of the elliptic stiffness.
+
+CG is the optimal Krylov method for SPD systems. GAMG provides $\mathcal{O}(1)$ iteration count independent of mesh refinement (mesh-independent convergence).
+
+#### Measured convergence
+
+From Stage 4 mesh study (same mesh, same BCs, same solver):
+
+| $h$ (mm) | Condition number $\kappa(\mathbf{A})$ | CG iterations | Time/solve (s) |
+|---|---|---|---|
+| 5 | ~10³ | ~12 | ~2 |
+| 3 | ~10⁴ | ~17 | ~13 |
+| 2 | ~10⁵ | ~22 | ~42 |
+| 1 | ~10⁶ | ~28 | ~310 |
+
+GAMG effectively reduces the iteration count to $\mathcal{O}(\log(1/h))$ rather than $\mathcal{O}(1/h)$ for unpreconditioned CG, confirming its effectiveness. At 3 mm: **~17 CG iterations per FEM solve**, PETSc relative residual tolerance $10^{-6}$.
+
+#### Impact on LM
+
+Each CG solve introduces a residual $\|\mathbf{A}\hat{\mathbf{T}} - \mathbf{b}\|/\|\mathbf{b}\| < 10^{-6}$, which translates to a temperature error of approximately $10^{-6} \times \|\mathbf{T}\|_\infty \approx 10^{-6} \times 37\text{ °C} \approx 4\times10^{-5}$ °C — three orders of magnitude below the FD step signal ($\sim 0.05$ °C), confirming that linear solver noise does not contaminate the Jacobian.
+
+---
+
+### d) Nonlinear (LM) Convergence
+
+#### Parameter history
+
+A well-converging LM run (with correct differential-hotspot initialisation) should show:
+
+| Iteration | RMS (°C) | $\mu$ | Behaviour |
+|---|---|---|---|
+| Start | ~0.15 | $10^{-2}$ | Far from truth; high residual |
+| 1–3 | 0.05→0.01 | decreasing | Large steps toward tumour basin |
+| 4–8 | 0.01→0.001 | decreasing | Refinement near correct position |
+| 9–15 | <0.001 | very small | Fine adjustment; diameter converges |
+| Converged | ~$10^{-4}$ | $\ll 1$ | $\|\delta\boldsymbol{\beta}\| < 0.05$ mm |
+
+*(Pending: post results here after successful synthetic run with differential-hotspot initialisation.)*
+
+#### Why initialisation determines success
+
+LM is a **local** optimiser. The cost landscape $S(\boldsymbol{\beta})$ has at minimum two critical points:
+
+1. **Global minimum** at $\boldsymbol{\beta} = \boldsymbol{\beta}_{plant}$ where $S = 0$ (in synthetic mode).
+2. **Trivial local minimum** at $d \to 0$ anywhere — the "no-tumour" solution where the model produces the healthy-tissue temperature field. This has $S = S_{healthy} = \|\mathbf{T}^{plant} - \mathbf{T}^{healthy}\|^2 / N_{skin}$ ≈ the tumour's thermal signature squared, non-zero but potentially lower than $S$ at a badly-started position.
+
+**Diagnosed failure mode (fixed by differential hotspot):**
+
+| Starting point | Starting RMS | Converges to | Cause |
+|---|---|---|---|
+| Absolute IR hotspot (y=98 mm) | 0.18 °C | d=3.4 mm, BENIGN | 112 mm from truth; gradient at start points toward d→0 (trivial minimum) |
+| Differential ΔT hotspot (y≈−14 mm) | expected ~0.05 °C | plant ≈ (38,−14,−38,14.4) | Within ~20 mm of truth; gradient points toward global minimum |
+
+**Differential hotspot fix:**
+$$\mathbf{T}^{healthy} = \texttt{ctx.solve}(\boldsymbol{\beta}_{healthy}), \quad \boldsymbol{\beta}_{healthy}: x_t = x_{max}+1000\text{ mm (outside mesh)}$$
+$$\Delta\mathbf{T} = \mathbf{T}^{target} - \mathbf{T}^{healthy}, \quad \text{init XY} = \underset{i \in \text{skin}}{\arg\max}\,\Delta T_i$$
+
+The hotspot of $\Delta\mathbf{T}$ is at the skin vertex directly above the tumour, independent of the chest-wall temperature background.
+
+#### Real patient convergence (SYNTHETIC_TEST = False)
+
+For real patients, the cost floor is non-zero due to model mismatch (wrong $k_h$, $h$, $\omega$ per patient; NeRF geometry error; ambient variation). Expected behaviour:
+
+- RMS converges to a residual floor $\sim 0.3$–$1.5$ °C (not zero).
+- Parameters converge to the least-squares best fit, which may differ from the true tumour location.
+- Detection is based on whether the recovered $\hat{\boldsymbol{\beta}}$ is inside the breast and $\hat{d} > 4$ mm — a qualitative criterion, not a precision estimate.
+
+*(Pending: real-patient LM convergence plots after switching `SYNTHETIC_TEST = False` for the 122-patient cohort.)*
+
+---
+
+### e) End-to-End Validation
+
+#### Synthetic: recovery error distribution
+
+**Stage 4b reference (Mukhmetov-style, 2D, bilateral cost)** — confirmed working on 9 scenarios, all < 0.8% error in $(z, r)$. This establishes that the FEM forward model is self-consistent and the mesh/BC combination is numerically sound.
+
+| Method | DoF | Cost | Scenarios tested | Max depth err | Max radius err |
+|---|---|---|---|---|---|
+| Stage 4 (Nelder-Mead, bilateral) | 2 | Bilateral asymmetry | 9 | 0.57 % | 0.76 % |
+| **Stage 4b (LM, direct MSE)** | **4** | **Direct MSE** | **pending** | **pending** | **pending** |
+
+The 4-DoF LM on the same mesh should achieve comparable or better precision on the $z$ and $d$ dimensions, with the added advantage of recovering lateral position $(x_t, y_t)$ as well.
+
+**Expected validation criteria (to be filled after run):**
+
+| Criterion | Target | Status |
+|---|---|---|
+| Position error $\|\hat{\mathbf{x}}_t - \mathbf{x}_t\|$ | < 5 mm | Pending |
+| Diameter error $|\hat{d} - d|$ | < 2 mm (paper accuracy) | Pending |
+| Final RMS (synthetic) | < $10^{-3}$ °C | Pending |
+| VERDICT (synthetic) | MALIGNANT for all planted cases | Pending |
+
+#### Real patient: consistency checks
+
+For `SYNTHETIC_TEST = False` on the 122-patient cohort, the absence of ground truth requires indirect consistency checks:
+
+| Check | Method | Pass criterion |
+|---|---|---|
+| Seed stability | Re-run with 3 different random seeds; compare $\hat{\boldsymbol{\beta}}$ | Position variation < 10 mm |
+| Mesh stability | Re-run at $h = 2$ mm; compare $\hat{\boldsymbol{\beta}}$ | Position variation < 5 mm |
+| FD step stability | Halve all step sizes; compare Jacobian | Gradient direction change < 15° |
+| Cost plausibility | Compare final RMS to healthy-tissue baseline | Final RMS < $S_{healthy}$ |
+| Detection rate | % MALIGNANT in malignant vs benign patients | AUC > 0.6 (better than random) |
+
+*(Pending: all real-patient results after cohort run.)*
 
 ---
 

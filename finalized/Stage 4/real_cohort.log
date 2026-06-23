@@ -1,0 +1,136 @@
+Device  : cuda
+trimesh : 4.12.2
+TIFF dir  : True
+UNET dir  : True
+NeRF ckpt : True
+Model classes defined.
+extract_3d_volume ready.
+Geometry pipeline ready.
+PINN v3 (fixed-magnitude, geometry-only inverse) ready.
+train_pinn_single (v3 — forward-matching inverse) ready.
+generate_synthetic_skin ready.
+FEA functions (shared-constant, chest-wall-aligned) ready.
+Found 122 complete patients.
+NeRF checkpoint loaded — 205,106 parameters
+========================================================================
+  LM FEM Inverse Bioheat — REAL MODE
+  Kandlikar 2020 | FEniCSx 3mm mesh | 4-DoF LM
+  Patients : 122
+  Output   : finalized/lm_results/lm_real_cohort.csv
+  Resume   : True
+========================================================================
+
+[001/122] Patient_1 (benign)
+
+  loading geometry... Extracting volume for Patient_1 (benign) …
+  calibrated breast_radius_mm: 156.1 mm (mask 94px wide, default was 70.0mm)
+  largest component: 30,802 verts, 61,600 faces
+  after repair     : watertight=True
+  laplacian smooth : 20 iters
+  T_measured: 22.0–33.8°C
+30,802 verts
+  building PennesCtx... Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/exported_stls/Patient_1_3mm.msh'...
+Info    : 5 entities
+Info    : 88515 nodes
+Info    : 506378 elements
+Info    : [  0%] Reading elements                                                                                Info    : [ 10%] Reading elements                                                                                Info    : [ 20%] Reading elements                                                                                Info    : [ 30%] Reading elements                                                                                Info    : [ 40%] Reading elements                                                                                Info    : [ 50%] Reading elements                                                                                Info    : [ 60%] Reading elements                                                                                Info    : [ 70%] Reading elements                                                                                Info    : [ 80%] Reading elements                                                                                Info    : [ 90%] Reading elements                                                                                                                                                                Info    : 2 parametrizations
+Info    : [  0%] Processing parametrizations                                                                                Info    : [ 10%] Processing parametrizations                                                                                Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/exported_stls/Patient_1_3mm.msh'
+88,515 nodes
+    init  RMS=2.3014°C  start=(110,104,-44) d=12.0mm
+    iter  1  RMS=2.3007°C  mu=2.7e-02  β=(122.3,103.2,-44.2,16.3)
+    iter  2  RMS=2.2962°C  mu=8.1e-03  β=(128.6,99.4,-50.2,22.7)
+    iter  3  RMS=2.2896°C  mu=2.4e-03  β=(135.4,97.1,-48.0,35.0)
+    iter  4  RMS=2.2881°C  mu=7.3e-04  β=(135.4,92.0,-47.3,35.0)
+    iter  5  RMS=2.2873°C  mu=2.2e-04  β=(135.4,87.3,-44.4,35.0)
+    iter  6  RMS=2.2870°C  mu=6.6e-05  β=(135.4,81.4,-41.4,35.0)
+    iter  7  RMS=2.2863°C  mu=4.8e-03  β=(135.4,73.7,-41.0,35.0)
+    iter  8  RMS=2.2830°C  mu=1.2e-01  β=(134.3,69.0,-42.5,35.0)
+    iter  9  RMS=2.2812°C  mu=1.0e-01  β=(133.4,64.6,-41.5,35.0)
+    iter 10  RMS=2.2791°C  mu=9.4e-02  β=(132.4,59.7,-40.1,35.0)
+    iter 11  RMS=2.2765°C  mu=8.5e-02  β=(131.3,54.4,-39.0,35.0)
+    iter 12  RMS=2.2741°C  mu=7.6e-02  β=(130.3,49.3,-37.9,35.0)
+    iter 13  RMS=2.2726°C  mu=6.9e-02  β=(129.3,44.2,-36.4,35.0)
+    iter 14  RMS=2.2719°C  mu=6.2e-02  β=(128.3,38.0,-34.6,35.0)
+    iter 15  RMS=2.2703°C  mu=5.6e-02  β=(126.6,29.0,-32.7,35.0)
+    iter 16  RMS=2.2590°C  mu=5.0e-02  β=(122.6,18.6,-32.2,35.0)
+    iter 17  RMS=2.2484°C  mu=4.5e-02  β=(119.4,15.3,-29.4,35.0)
+    iter 18  RMS=2.2465°C  mu=4.1e-02  β=(118.6,12.4,-29.7,35.0)
+    iter 19  RMS=2.2337°C  mu=1.1e-01  β=(115.7,12.4,-30.2,35.0)
+    iter 20  RMS=2.2291°C  mu=9.8e-02  β=(114.2,11.5,-29.9,35.0)
+    iter 21  RMS=2.2270°C  mu=8.9e-02  β=(113.4,10.4,-29.7,35.0)
+    iter 22  RMS=2.2263°C  mu=8.0e-02  β=(113.0,9.3,-29.4,35.0)
+    iter 23  RMS=2.2216°C  mu=2.2e-01  β=(111.5,9.3,-30.0,35.0)
+    iter 24  RMS=2.2190°C  mu=1.9e-01  β=(110.4,9.0,-30.2,35.0)
+    iter 25  RMS=2.2176°C  mu=1.7e-01  β=(109.7,8.5,-30.3,35.0)
+    → ✓ MALIGNANT  β=(110,9,-30) d=35.0mm  RMS=2.2176°C  157 solves  733s
+  Patient_1 done in 12.3 min
+
+[002/122] Patient_10 (benign)
+
+  loading geometry... Extracting volume for Patient_10 (benign) …
+  calibrated breast_radius_mm: 137.8 mm (mask 83px wide, default was 70.0mm)
+  largest component: 21,676 verts, 43,348 faces
+  after repair     : watertight=True
+  laplacian smooth : 20 iters
+  T_measured: 23.0–33.3°C
+21,676 verts
+STL saved → /mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/exported_stls/Patient_10.stl
+  mesh: generating 3mm... done (25s)
+  building PennesCtx... Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/exported_stls/Patient_10_3mm.msh'...
+Info    : 5 entities
+Info    : 42975 nodes
+Info    : 244081 elements
+Info    : [  0%] Reading elements                                                                                Info    : [ 10%] Reading elements                                                                                Info    : [ 20%] Reading elements                                                                                Info    : [ 30%] Reading elements                                                                                Info    : [ 40%] Reading elements                                                                                Info    : [ 50%] Reading elements                                                                                Info    : [ 60%] Reading elements                                                                                Info    : [ 70%] Reading elements                                                                                Info    : [ 80%] Reading elements                                                                                Info    : [ 90%] Reading elements                                                                                                                                                                Info    : 2 parametrizations
+Info    : [  0%] Processing parametrizations                                                                                Info    : [ 10%] Processing parametrizations                                                                                Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/exported_stls/Patient_10_3mm.msh'
+42,975 nodes
+    init  RMS=1.9608°C  start=(104,51,-11) d=12.0mm
+    iter  1  RMS=1.9608°C  mu=6.6e+01  β=(103.7,51.0,-10.6,12.0) [rejected]
+    → ✓ MALIGNANT  β=(104,51,-11) d=12.0mm  RMS=1.9608°C  14 solves  37s
+  Patient_10 done in 1.1 min
+
+[003/122] Patient_100 (benign)
+
+  loading geometry... Extracting volume for Patient_100 (benign) …
+  calibrated breast_radius_mm: 144.4 mm (mask 87px wide, default was 70.0mm)
+  largest component: 32,796 verts, 65,588 faces
+  after repair     : watertight=True
+  laplacian smooth : 20 iters
+  T_measured: 21.2–32.8°C
+32,796 verts
+STL saved → /mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/exported_stls/Patient_100.stl
+  mesh: generating 3mm... done (63s)
+  building PennesCtx... Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/exported_stls/Patient_100_3mm.msh'...
+Info    : 5 entities
+Info    : 98541 nodes
+Info    : 567175 elements
+Info    : [  0%] Reading elements                                                                                Info    : [ 10%] Reading elements                                                                                Info    : [ 20%] Reading elements                                                                                Info    : [ 30%] Reading elements                                                                                Info    : [ 40%] Reading elements                                                                                Info    : [ 50%] Reading elements                                                                                Info    : [ 60%] Reading elements                                                                                Info    : [ 70%] Reading elements                                                                                Info    : [ 80%] Reading elements                                                                                Info    : [ 90%] Reading elements                                                                                                                                                                Info    : 2 parametrizations
+Info    : [  0%] Processing parametrizations                                                                                Info    : [ 10%] Processing parametrizations                                                                                Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/exported_stls/Patient_100_3mm.msh'
+98,541 nodes
+    init  RMS=2.2032°C  start=(-31,110,-18) d=12.0mm
+    iter  1  RMS=2.1957°C  mu=3.0e-03  β=(-63.9,136.8,-22.0,1.0)
+    iter  2  RMS=2.1957°C  mu=2.0e+01  β=(-63.9,136.8,-22.0,1.0) [rejected]
+    → ○ BENIGN  β=(-64,137,-22) d=1.0mm  RMS=2.1957°C  19 solves  88s
+  Patient_100 done in 2.7 min
+
+[004/122] Patient_106 (benign)
+
+  loading geometry... Extracting volume for Patient_106 (benign) …
+  calibrated breast_radius_mm: 166.0 mm (mask 100px wide, default was 70.0mm)
+  largest component: 39,166 verts, 78,328 faces
+  after repair     : watertight=True
+  laplacian smooth : 20 iters
+  T_measured: 22.0–32.2°C
+39,166 verts
+STL saved → /mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/exported_stls/Patient_106.stl
+  mesh: generating 3mm... done (104s)
+  building PennesCtx... Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/exported_stls/Patient_106_3mm.msh'...
+Info    : 5 entities
+Info    : 153761 nodes
+Info    : [  0%] Reading nodes                                                                                Info    : [ 10%] Reading nodes                                                                                Info    : [ 20%] Reading nodes                                                                                Info    : [ 30%] Reading nodes                                                                                Info    : [ 40%] Reading nodes                                                                                Info    : [ 50%] Reading nodes                                                                                Info    : [ 60%] Reading nodes                                                                                Info    : [ 70%] Reading nodes                                                                                Info    : [ 80%] Reading nodes                                                                                Info    : [ 90%] Reading nodes                                                                                                                                                                Info    : 886672 elements
+Info    : [  0%] Reading elements                                                                                Info    : [ 10%] Reading elements                                                                                Info    : [ 20%] Reading elements                                                                                Info    : [ 30%] Reading elements                                                                                Info    : [ 40%] Reading elements                                                                                Info    : [ 50%] Reading elements                                                                                Info    : [ 60%] Reading elements                                                                                Info    : [ 70%] Reading elements                                                                                Info    : [ 80%] Reading elements                                                                                Info    : [ 90%] Reading elements                                                                                                                                                                Info    : 2 parametrizations
+Info    : [  0%] Processing parametrizations                                                                                Info    : [ 10%] Processing parametrizations                                                                                Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/exported_stls/Patient_106_3mm.msh'
+153,761 nodes
+    init  RMS=2.0254°C  start=(-46,87,-17) d=12.0mm
+    iter  1  RMS=2.0133°C  mu=3.0e-03  β=(-71.1,114.4,-30.5,1.0)
+    iter  2  RMS=2.0121°C  mu=2.0e+00  β=(-57.3,94.8,-88.3,2.5)
+    iter  3  RMS=2.0100°C  mu=1.6e+01  β=(-61.5,98.1,-100.1,2.9)

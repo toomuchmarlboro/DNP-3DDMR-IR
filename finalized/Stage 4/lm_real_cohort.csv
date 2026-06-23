@@ -1,0 +1,4 @@
+patient_id,label,mode,recovered_x,recovered_y,recovered_z,recovered_d,final_rms,converged,verdict,n_solves,time_s,status
+Patient_1,benign,real,109.7,8.5,-30.3,35.0,2.217562,False,MALIGNANT,157,732.6,OK
+Patient_10,benign,real,103.7,51.0,-10.6,12.0,1.960818,False,MALIGNANT,14,36.8,OK
+Patient_100,benign,real,-63.9,136.8,-22.0,1.0,2.195735,False,BENIGN,19,88.1,OK

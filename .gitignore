@@ -14,3 +14,7 @@ data/reconstruction_output/
 
 # Local experiment outputs
 outputs/
+
+# Generated mesh exports that are too large for GitHub
+TherMAM-NeRF/PINNpdeSolver/exported_stls/Patient_159_1mm.msh
+TherMAM-NeRF/PINNpdeSolver/exported_stls/Patient_159_2mm.msh

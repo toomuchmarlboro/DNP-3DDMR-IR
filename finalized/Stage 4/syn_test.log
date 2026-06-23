@@ -1,0 +1,303 @@
+Device  : cuda
+trimesh : 4.12.2
+TIFF dir  : True
+UNET dir  : True
+NeRF ckpt : True
+Model classes defined.
+extract_3d_volume ready.
+Geometry pipeline ready.
+PINN v3 (fixed-magnitude, geometry-only inverse) ready.
+train_pinn_single (v3 — forward-matching inverse) ready.
+generate_synthetic_skin ready.
+FEA functions (shared-constant, chest-wall-aligned) ready.
+Found 122 complete patients.
+NeRF checkpoint loaded — 205,106 parameters
+========================================================================
+  LM FEM Inverse Bioheat — SYNTHETIC MODE
+  Kandlikar 2020 | FEniCSx 3mm mesh | 4-DoF LM
+  Patients : 2
+  Scenarios: 10 per patient
+  Output   : /mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/finalized/lm_results/lm_synthetic_20260623_010523.csv
+  Resume   : True
+========================================================================
+
+[001/2] Patient_159 (benign)
+
+  loading geometry... Extracting volume for Patient_159 (benign) …
+  calibrated breast_radius_mm: 162.7 mm (mask 98px wide, default was 70.0mm)
+  largest component: 39,080 verts, 78,156 faces
+  after repair     : watertight=True
+  laplacian smooth : 20 iters
+  T_measured: 23.5–34.0°C
+39,080 verts
+  building PennesCtx... Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/exported_stls/Patient_159_3mm.msh'...
+Info    : 5 entities
+Info    : 157706 nodes
+Info    : [  0%] Reading nodes                                                                                Info    : [ 10%] Reading nodes                                                                                Info    : [ 20%] Reading nodes                                                                                Info    : [ 30%] Reading nodes                                                                                Info    : [ 40%] Reading nodes                                                                                Info    : [ 50%] Reading nodes                                                                                Info    : [ 60%] Reading nodes                                                                                Info    : [ 70%] Reading nodes                                                                                Info    : [ 80%] Reading nodes                                                                                Info    : [ 90%] Reading nodes                                                                                                                                                                Info    : 911204 elements
+Info    : [  0%] Reading elements                                                                                Info    : [ 10%] Reading elements                                                                                Info    : [ 20%] Reading elements                                                                                Info    : [ 30%] Reading elements                                                                                Info    : [ 40%] Reading elements                                                                                Info    : [ 50%] Reading elements                                                                                Info    : [ 60%] Reading elements                                                                                Info    : [ 70%] Reading elements                                                                                Info    : [ 80%] Reading elements                                                                                Info    : [ 90%] Reading elements                                                                                                                                                                Info    : 2 parametrizations
+Info    : [  0%] Processing parametrizations                                                                                Info    : [ 10%] Processing parametrizations                                                                                Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/exported_stls/Patient_159_3mm.msh'
+157,706 nodes
+
+  sc  1/10  quad=UI  d=14.4mm  skin=17.9mm  plant=(39,-14,-23)
+    init  RMS=0.0186°C  start=(38,-40,-19) d=12.0mm
+    iter  1  RMS=0.0064°C  mu=3.0e-03  β=(37.7,-31.7,-19.4,10.7)
+    iter  2  RMS=0.0013°C  mu=9.0e-04  β=(38.0,-18.6,-20.9,12.7)
+    iter  3  RMS=0.0006°C  mu=2.7e-04  β=(38.6,-12.3,-22.9,14.6)
+    → ✓ MALIGNANT  pos_err=1.7mm  d_err=0.2mm  RMS=5.93e-04  17 solves  120s
+
+  sc  2/10  quad=UI  d=10.9mm  skin=19.6mm  plant=(39,-14,-23)
+    init  RMS=0.0206°C  start=(38,-40,-19) d=12.0mm
+    iter  1  RMS=0.0165°C  mu=3.0e-03  β=(37.6,-34.2,-19.1,9.4)
+    iter  2  RMS=0.0087°C  mu=9.0e-04  β=(37.7,-27.6,-19.4,13.2)
+    iter  3  RMS=0.0025°C  mu=2.7e-04  β=(37.9,-20.9,-20.5,11.6)
+    iter  4  RMS=0.0003°C  mu=8.1e-05  β=(38.3,-14.5,-22.0,11.6)
+    → ✓ MALIGNANT  pos_err=1.1mm  d_err=0.6mm  RMS=2.57e-04  22 solves  149s
+
+  sc  3/10  quad=UI  d=17.9mm  skin=6.9mm  plant=(39,-23,-26)
+    init  RMS=0.0176°C  start=(37,-43,-19) d=12.0mm
+    iter  1  RMS=0.0073°C  mu=3.0e-03  β=(37.7,-25.2,-22.7,16.0)
+    iter  2  RMS=0.0018°C  mu=9.0e-04  β=(39.0,-20.7,-26.7,18.3)
+    iter  3  RMS=0.0005°C  mu=2.7e-04  β=(38.8,-23.0,-25.5,17.9)
+    → ✓ MALIGNANT  pos_err=0.4mm  d_err=0.0mm  RMS=4.78e-04  17 solves  118s
+
+  sc  4/10  quad=UO  d=13.7mm  skin=18.9mm  plant=(88,1,-13)
+    init  RMS=0.1725°C  start=(114,-18,-19) d=12.0mm
+    iter  1  RMS=0.1027°C  mu=3.0e-03  β=(109.7,-14.0,-15.8,6.8)
+    iter  2  RMS=0.0360°C  mu=9.0e-04  β=(108.6,-12.9,-15.4,5.2)
+    iter  3  RMS=0.0135°C  mu=2.7e-04  β=(105.9,-10.1,-14.6,4.6)
+    iter  4  RMS=0.0047°C  mu=8.1e-05  β=(100.5,-5.4,-13.6,4.6)
+    iter  5  RMS=0.0024°C  mu=2.4e-05  β=(93.1,-0.6,-13.0,5.2)
+    iter  6  RMS=0.0012°C  mu=7.3e-06  β=(89.3,0.3,-13.4,5.6)
+    iter  7  RMS=0.0002°C  mu=2.2e-06  β=(89.1,0.0,-13.4,5.7)
+    → ✓ MALIGNANT  pos_err=1.1mm  d_err=8.0mm  RMS=2.06e-04  37 solves  270s
+
+  sc  5/10  quad=C  d=18.2mm  skin=11.7mm  plant=(65,53,-90)
+    init  RMS=0.1459°C  start=(63,55,-19) d=12.0mm
+    iter  1  RMS=0.1402°C  mu=2.2e+00  β=(64.7,56.5,-50.8,14.8)
+    iter  2  RMS=0.0630°C  mu=2.0e+00  β=(67.0,58.5,-81.0,19.3)
+    iter  3  RMS=0.0373°C  mu=5.9e-01  β=(66.2,56.1,-83.3,20.1)
+    iter  4  RMS=0.0166°C  mu=1.8e-01  β=(65.0,53.6,-85.1,20.5)
+    iter  5  RMS=0.0119°C  mu=5.3e-02  β=(64.6,53.0,-86.4,20.2)
+    iter  6  RMS=0.0068°C  mu=1.6e-02  β=(64.7,53.1,-88.1,19.3)
+    iter  7  RMS=0.0029°C  mu=4.8e-03  β=(64.8,53.2,-89.4,18.5)
+    iter  8  RMS=0.0006°C  mu=1.4e-03  β=(64.9,53.2,-89.6,18.3)
+    → ✓ MALIGNANT  pos_err=0.0mm  d_err=0.0mm  RMS=6.04e-04  49 solves  345s
+
+  sc  6/10  quad=UO  d=15.5mm  skin=6.0mm  plant=(98,-7,-15)
+    init  RMS=0.1497°C  start=(115,-19,-19) d=12.0mm
+    iter  1  RMS=0.0623°C  mu=3.0e-03  β=(107.5,-13.1,-14.6,7.4)
+    iter  2  RMS=0.0155°C  mu=9.0e-04  β=(104.7,-10.3,-14.6,9.3)
+    iter  3  RMS=0.0071°C  mu=6.6e-02  β=(102.9,-8.8,-15.0,9.3)
+    iter  4  RMS=0.0063°C  mu=5.3e-01  β=(102.5,-8.6,-15.1,9.3)
+    iter  5  RMS=0.0058°C  mu=4.3e+00  β=(102.5,-8.6,-15.1,9.3)
+    iter  6  RMS=0.0055°C  mu=1.3e+00  β=(102.4,-8.6,-15.2,9.3)
+    iter  7  RMS=0.0053°C  mu=1.2e+00  β=(102.2,-8.5,-15.2,9.3)
+    iter  8  RMS=0.0050°C  mu=1.0e+00  β=(102.1,-8.5,-15.3,9.3)
+    iter  9  RMS=0.0049°C  mu=9.4e-01  β=(101.9,-8.4,-15.3,9.3)
+    iter 10  RMS=0.0045°C  mu=8.5e-01  β=(101.7,-8.3,-15.4,9.3)
+    iter 11  RMS=0.0044°C  mu=2.3e+00  β=(101.7,-8.3,-15.4,9.3)
+    iter 12  RMS=0.0041°C  mu=6.9e-01  β=(101.5,-8.3,-15.4,9.3)
+    iter 13  RMS=0.0038°C  mu=6.2e-01  β=(101.3,-8.2,-15.4,9.3)
+    iter 14  RMS=0.0034°C  mu=5.6e-01  β=(101.1,-8.1,-15.4,9.3)
+    iter 15  RMS=0.0033°C  mu=1.5e+00  β=(101.1,-8.1,-15.4,9.3)
+    iter 16  RMS=0.0032°C  mu=1.4e+00  β=(101.0,-8.1,-15.4,9.3)
+    iter 17  RMS=0.0031°C  mu=1.2e+00  β=(100.9,-8.0,-15.4,9.3)
+    iter 18  RMS=0.0029°C  mu=1.1e+00  β=(100.8,-8.0,-15.4,9.3)
+    iter 19  RMS=0.0029°C  mu=9.8e-01  β=(100.7,-8.0,-15.4,9.2)
+    iter 20  RMS=0.0026°C  mu=8.9e-01  β=(100.6,-7.9,-15.4,9.2)
+    iter 21  RMS=0.0026°C  mu=2.4e+00  β=(100.6,-7.9,-15.4,9.2)
+    → ✓ MALIGNANT  pos_err=3.2mm  d_err=6.3mm  RMS=2.60e-03  135 solves  996s
+
+  sc  7/10  quad=UI  d=16.3mm  skin=16.4mm  plant=(39,-14,-23)
+    init  RMS=0.0168°C  start=(38,-40,-19) d=12.0mm
+    iter  1  RMS=0.0048°C  mu=3.0e-03  β=(37.8,-29.1,-19.8,12.1)
+    iter  2  RMS=0.0020°C  mu=9.0e-04  β=(38.2,-13.8,-21.9,15.7)
+    iter  3  RMS=0.0002°C  mu=2.7e-04  β=(38.7,-14.6,-23.3,16.3)
+    → ✓ MALIGNANT  pos_err=0.4mm  d_err=0.1mm  RMS=2.34e-04  17 solves  114s
+
+  sc  8/10  quad=UO  d=19.7mm  skin=18.4mm  plant=(86,2,-13)
+    init  RMS=0.1623°C  start=(114,-18,-19) d=12.0mm
+    iter  1  RMS=0.1165°C  mu=3.0e-03  β=(109.2,-13.6,-15.6,7.5)
+    iter  2  RMS=0.0436°C  mu=9.0e-04  β=(107.2,-11.5,-15.0,10.8)
+    iter  3  RMS=0.0165°C  mu=2.7e-04  β=(103.5,-7.7,-14.0,10.3)
+    iter  4  RMS=0.0064°C  mu=8.1e-05  β=(96.4,-1.6,-12.8,13.8)
+    iter  5  RMS=0.0036°C  mu=2.4e-05  β=(88.9,2.5,-12.5,17.9)
+    iter  6  RMS=0.0004°C  mu=7.3e-06  β=(86.4,2.2,-12.7,19.6)
+    → ✓ MALIGNANT  pos_err=0.1mm  d_err=0.1mm  RMS=3.78e-04  32 solves  225s
+
+  sc  9/10  quad=UI  d=11.9mm  skin=12.0mm  plant=(39,-21,-25)
+    init  RMS=0.0233°C  start=(37,-43,-19) d=12.0mm
+    iter  1  RMS=0.0088°C  mu=3.0e-03  β=(37.3,-35.8,-19.8,10.3)
+    iter  2  RMS=0.0017°C  mu=9.0e-04  β=(37.7,-24.9,-21.9,10.9)
+    iter  3  RMS=0.0006°C  mu=2.7e-04  β=(38.6,-19.2,-24.9,12.3)
+    → ✓ MALIGNANT  pos_err=1.6mm  d_err=0.3mm  RMS=5.89e-04  17 solves  114s
+
+  sc 10/10  quad=UO  d=11.5mm  skin=15.2mm  plant=(92,-2,-14)
+    init  RMS=0.1710°C  start=(114,-18,-19) d=12.0mm
+    iter  1  RMS=0.1039°C  mu=3.0e-03  β=(109.7,-14.0,-15.8,6.9)
+    iter  2  RMS=0.0360°C  mu=9.0e-04  β=(108.7,-12.9,-15.4,5.2)
+    iter  3  RMS=0.0131°C  mu=2.7e-04  β=(106.1,-10.4,-14.8,4.6)
+    iter  4  RMS=0.0042°C  mu=8.1e-05  β=(101.4,-6.4,-14.0,4.6)
+    iter  5  RMS=0.0018°C  mu=2.4e-05  β=(95.5,-2.9,-13.6,5.0)
+    iter  6  RMS=0.0009°C  mu=7.3e-06  β=(92.7,-2.3,-13.9,5.3)
+    → ✓ MALIGNANT  pos_err=0.7mm  d_err=6.2mm  RMS=9.09e-04  32 solves  227s
+  Patient_159 done in 46.0 min
+
+[002/2] Patient_179 (malignant)
+
+  loading geometry... Extracting volume for Patient_179 (malignant) …
+  calibrated breast_radius_mm: 146.1 mm (mask 88px wide, default was 70.0mm)
+  largest component: 32,850 verts, 65,696 faces
+  after repair     : watertight=True
+  laplacian smooth : 20 iters
+  T_measured: 24.4–34.2°C
+32,850 verts
+STL saved → /mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/exported_stls/Patient_179.stl
+  mesh: generating 3mm... done (57s)
+  building PennesCtx... Info    : Reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/exported_stls/Patient_179_3mm.msh'...
+Info    : 5 entities
+Info    : 89680 nodes
+Info    : 513323 elements
+Info    : [  0%] Reading elements                                                                                Info    : [ 10%] Reading elements                                                                                Info    : [ 20%] Reading elements                                                                                Info    : [ 30%] Reading elements                                                                                Info    : [ 40%] Reading elements                                                                                Info    : [ 50%] Reading elements                                                                                Info    : [ 60%] Reading elements                                                                                Info    : [ 70%] Reading elements                                                                                Info    : [ 80%] Reading elements                                                                                Info    : [ 90%] Reading elements                                                                                                                                                                Info    : 2 parametrizations
+Info    : [  0%] Processing parametrizations                                                                                Info    : [ 10%] Processing parametrizations                                                                                Info    : Done reading '/mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/TherMAM-NeRF/PINNpdeSolver/exported_stls/Patient_179_3mm.msh'
+89,680 nodes
+
+  sc  1/10  quad=UI  d=19.7mm  skin=9.9mm  plant=(-36,10,-59)
+    init  RMS=0.0579°C  start=(-9,-2,-51) d=12.0mm
+    iter  1  RMS=0.0359°C  mu=3.0e-03  β=(-27.9,12.1,-52.8,16.7)
+    iter  2  RMS=0.0235°C  mu=9.0e-04  β=(-41.3,10.2,-62.4,20.6)
+    iter  3  RMS=0.0033°C  mu=2.7e-04  β=(-37.1,9.9,-59.8,19.7)
+    iter  4  RMS=0.0002°C  mu=8.1e-05  β=(-36.0,9.9,-59.3,19.6)
+    → ✓ MALIGNANT  pos_err=0.1mm  d_err=0.0mm  RMS=1.97e-04  22 solves  100s
+
+  sc  2/10  quad=UO  d=14.7mm  skin=7.8mm  plant=(-68,14,-64)
+    init  RMS=0.1091°C  start=(-88,17,-51) d=12.0mm
+    iter  1  RMS=0.0955°C  mu=3.0e-03  β=(-98.8,17.0,-53.2,15.7)
+    iter  2  RMS=0.0504°C  mu=9.0e-04  β=(-107.4,17.8,-59.9,27.5)
+    iter  3  RMS=0.0417°C  mu=2.7e-04  β=(-114.1,17.5,-61.0,33.3)
+    iter  4  RMS=0.0365°C  mu=8.1e-05  β=(-120.9,16.0,-62.8,39.2)
+    iter  5  RMS=0.0342°C  mu=2.4e-05  β=(-124.9,14.4,-63.7,42.6)
+    iter  6  RMS=0.0335°C  mu=7.3e-06  β=(-126.6,13.3,-63.7,43.9)
+    iter  7  RMS=0.0333°C  mu=2.2e-06  β=(-127.4,12.9,-63.7,44.5)
+    iter  8  RMS=0.0333°C  mu=6.6e-07  β=(-127.7,12.8,-63.7,44.8)
+    iter  9  RMS=0.0333°C  mu=2.0e-07  β=(-127.8,12.7,-63.7,44.9)
+    iter 10  RMS=0.0333°C  mu=5.9e-08  β=(-127.9,12.7,-63.7,44.9)
+    iter 11  RMS=0.0333°C  mu=1.8e-08  β=(-127.9,12.7,-63.7,44.9)
+    → ✗ BENIGN  pos_err=60.1mm  d_err=30.2mm  RMS=3.33e-02  57 solves  257s
+
+  sc  3/10  quad=UO  d=14.8mm  skin=8.4mm  plant=(-67,15,-64)
+    init  RMS=0.1089°C  start=(-88,17,-51) d=12.0mm
+    iter  1  RMS=0.0930°C  mu=3.0e-03  β=(-98.7,17.1,-53.1,15.6)
+    iter  2  RMS=0.0507°C  mu=9.0e-04  β=(-107.2,18.0,-59.7,27.2)
+    iter  3  RMS=0.0421°C  mu=2.7e-04  β=(-114.0,17.7,-60.9,33.0)
+    iter  4  RMS=0.0368°C  mu=8.1e-05  β=(-121.0,16.4,-62.7,39.1)
+    iter  5  RMS=0.0344°C  mu=2.4e-05  β=(-125.3,14.7,-63.6,42.7)
+    iter  6  RMS=0.0336°C  mu=7.3e-06  β=(-127.1,13.5,-63.6,44.1)
+    iter  7  RMS=0.0335°C  mu=2.2e-06  β=(-127.9,13.1,-63.6,44.8)
+    iter  8  RMS=0.0334°C  mu=6.6e-07  β=(-128.3,12.9,-63.6,45.1)
+    iter  9  RMS=0.0334°C  mu=2.0e-07  β=(-128.4,12.8,-63.6,45.2)
+    iter 10  RMS=0.0334°C  mu=5.9e-08  β=(-128.5,12.8,-63.6,45.2)
+    iter 11  RMS=0.0334°C  mu=1.8e-08  β=(-128.5,12.8,-63.6,45.3)
+    → ✗ BENIGN  pos_err=61.2mm  d_err=30.5mm  RMS=3.34e-02  57 solves  250s
+
+  sc  4/10  quad=C  d=14.4mm  skin=17.5mm  plant=(-95,87,-111)
+    init  RMS=0.2300°C  start=(-117,91,-51) d=12.0mm
+    iter  1  RMS=0.2299°C  mu=2.7e-02  β=(-115.9,95.8,-51.4,14.4)
+    iter  2  RMS=0.2299°C  mu=2.4e-02  β=(-116.0,99.0,-50.1,15.0)
+    iter  3  RMS=0.2299°C  mu=6.6e-02  β=(-115.9,100.4,-50.1,15.3)
+    iter  4  RMS=0.2299°C  mu=5.9e-02  β=(-115.9,101.9,-50.1,15.7)
+    iter  5  RMS=0.2299°C  mu=5.3e-02  β=(-115.9,103.5,-50.3,16.1)
+    iter  6  RMS=0.2299°C  mu=4.8e-02  β=(-115.8,105.2,-50.6,16.5)
+    iter  7  RMS=0.2299°C  mu=4.3e-02  β=(-115.8,107.1,-51.2,17.0)
+    iter  8  RMS=0.2299°C  mu=3.9e-02  β=(-115.7,109.3,-52.4,17.6)
+    iter  9  RMS=0.2299°C  mu=3.5e-02  β=(-115.5,111.9,-54.6,18.2)
+    iter 10  RMS=0.2298°C  mu=3.1e-02  β=(-115.2,115.1,-59.8,18.8)
+    iter 11  RMS=0.2295°C  mu=9.4e-03  β=(-114.0,128.2,-81.5,21.5)
+    iter 12  RMS=0.1540°C  mu=8.5e-03  β=(-278.5,73.1,-38.2,159.7)
+    iter 13  RMS=0.1413°C  mu=6.9e-02  β=(-281.7,140.7,-81.1,158.4)
+    iter 14  RMS=0.1126°C  mu=6.2e-02  β=(-278.4,133.5,-157.4,160.5)
+    iter 15  RMS=0.0680°C  mu=1.9e-02  β=(-273.3,141.5,-131.6,163.4)
+    iter 16  RMS=0.0676°C  mu=5.6e-03  β=(-270.0,145.2,-148.3,162.7)
+    iter 17  RMS=0.0661°C  mu=1.7e-03  β=(-264.7,145.4,-142.6,158.4)
+    iter 18  RMS=0.0653°C  mu=5.0e-04  β=(-256.1,140.8,-136.4,149.2)
+    iter 19  RMS=0.0647°C  mu=1.5e-04  β=(-246.2,136.1,-127.9,138.7)
+    iter 20  RMS=0.0644°C  mu=4.5e-05  β=(-239.2,132.8,-123.0,131.6)
+    iter 21  RMS=0.0643°C  mu=1.4e-05  β=(-235.7,131.2,-120.4,128.1)
+    iter 22  RMS=0.0643°C  mu=4.1e-06  β=(-234.0,130.4,-119.3,126.4)
+    iter 23  RMS=0.0643°C  mu=1.2e-06  β=(-233.1,130.1,-118.7,125.6)
+    iter 24  RMS=0.0643°C  mu=3.6e-07  β=(-232.7,129.9,-118.4,125.2)
+    iter 25  RMS=0.0643°C  mu=2.4e-04  β=(-232.6,129.8,-118.3,125.1)
+    → ✗ BENIGN  pos_err=144.8mm  d_err=110.7mm  RMS=6.43e-02  151 solves  690s
+
+  sc  5/10  quad=UI  d=13.1mm  skin=17.5mm  plant=(-38,14,-59)
+    init  RMS=0.0428°C  start=(-9,-2,-51) d=12.0mm
+    iter  1  RMS=0.0205°C  mu=3.0e-03  β=(-15.2,4.0,-51.4,10.4)
+    iter  2  RMS=0.0090°C  mu=9.0e-04  β=(-28.9,12.6,-54.9,11.6)
+    iter  3  RMS=0.0022°C  mu=2.7e-04  β=(-39.6,14.9,-59.6,13.3)
+    iter  4  RMS=0.0001°C  mu=8.1e-05  β=(-37.6,13.9,-58.8,13.1)
+    → ✓ MALIGNANT  pos_err=0.1mm  d_err=0.0mm  RMS=7.98e-05  22 solves  92s
+
+  sc  6/10  quad=UI  d=13.9mm  skin=9.3mm  plant=(-35,7,-60)
+    init  RMS=0.0468°C  start=(-10,-5,-51) d=12.0mm
+    iter  1  RMS=0.0219°C  mu=3.0e-03  β=(-17.6,0.6,-52.2,11.2)
+    iter  2  RMS=0.0075°C  mu=9.0e-04  β=(-31.7,8.2,-57.3,13.3)
+    iter  3  RMS=0.0012°C  mu=2.7e-04  β=(-35.3,6.7,-60.0,14.0)
+    iter  4  RMS=0.0000°C  mu=8.1e-05  β=(-34.7,6.7,-59.7,13.9)
+    → ✓ MALIGNANT  pos_err=0.0mm  d_err=0.0mm  RMS=4.40e-05  22 solves  99s
+
+  sc  7/10  quad=UI  d=11.4mm  skin=8.0mm  plant=(-34,4,-60)
+    init  RMS=0.0516°C  start=(-9,-6,-51) d=12.0mm
+    iter  1  RMS=0.0244°C  mu=3.0e-03  β=(-14.6,-2.2,-52.0,9.9)
+    iter  2  RMS=0.0159°C  mu=9.0e-04  β=(-24.5,3.1,-55.0,9.3)
+    iter  3  RMS=0.0035°C  mu=2.7e-04  β=(-30.9,4.8,-58.2,11.1)
+    iter  4  RMS=0.0002°C  mu=8.1e-05  β=(-33.8,4.6,-60.0,11.4)
+    → ✓ MALIGNANT  pos_err=0.3mm  d_err=0.0mm  RMS=2.36e-04  22 solves  100s
+
+  sc  8/10  quad=UO  d=17.9mm  skin=15.0mm  plant=(-60,19,-64)
+    init  RMS=0.1364°C  start=(-87,21,-51) d=12.0mm
+    iter  1  RMS=0.0862°C  mu=2.7e-02  β=(-89.4,21.0,-52.3,9.9)
+    iter  2  RMS=0.0750°C  mu=8.1e-03  β=(-93.5,20.2,-54.2,13.8)
+    iter  3  RMS=0.0679°C  mu=2.4e-03  β=(-98.2,20.2,-55.7,18.0)
+    iter  4  RMS=0.0616°C  mu=7.3e-04  β=(-104.0,20.6,-57.2,23.4)
+    iter  5  RMS=0.0556°C  mu=2.2e-04  β=(-111.2,20.7,-59.3,30.0)
+    iter  6  RMS=0.0498°C  mu=6.6e-05  β=(-120.1,20.1,-62.1,37.9)
+    iter  7  RMS=0.0469°C  mu=2.0e-05  β=(-126.8,18.2,-63.5,43.7)
+    iter  8  RMS=0.0456°C  mu=5.9e-06  β=(-129.4,16.2,-62.9,45.6)
+    iter  9  RMS=0.0452°C  mu=1.8e-06  β=(-131.4,15.0,-62.7,47.2)
+    iter 10  RMS=0.0451°C  mu=5.3e-07  β=(-132.7,14.3,-62.5,48.3)
+    iter 11  RMS=0.0450°C  mu=1.6e-07  β=(-133.5,13.9,-62.5,48.9)
+    iter 12  RMS=0.0450°C  mu=4.8e-08  β=(-133.9,13.7,-62.4,49.2)
+    iter 13  RMS=0.0450°C  mu=1.4e-08  β=(-134.1,13.6,-62.4,49.4)
+    iter 14  RMS=0.0450°C  mu=4.3e-09  β=(-134.2,13.5,-62.4,49.5)
+    iter 15  RMS=0.0450°C  mu=1.3e-09  β=(-134.3,13.5,-62.4,49.5)
+    iter 16  RMS=0.0450°C  mu=1.0e-09  β=(-134.4,13.4,-62.4,49.6)
+    iter 17  RMS=0.0450°C  mu=1.0e-09  β=(-134.4,13.4,-62.4,49.6)
+    → ✗ BENIGN  pos_err=74.3mm  d_err=31.7mm  RMS=4.50e-02  89 solves  405s
+
+  sc  9/10  quad=UI  d=17.8mm  skin=11.9mm  plant=(-36,11,-59)
+    init  RMS=0.0472°C  start=(-9,-2,-51) d=12.0mm
+    iter  1  RMS=0.0289°C  mu=3.0e-03  β=(-23.1,9.3,-52.2,14.4)
+    iter  2  RMS=0.0138°C  mu=9.0e-04  β=(-42.0,13.2,-61.3,18.3)
+    iter  3  RMS=0.0010°C  mu=2.7e-04  β=(-36.8,11.0,-59.3,17.9)
+    → ✓ MALIGNANT  pos_err=0.5mm  d_err=0.0mm  RMS=9.97e-04  17 solves  69s
+
+  sc 10/10  quad=C  d=11.4mm  skin=6.7mm  plant=(-96,88,-123)
+    init  RMS=0.4265°C  start=(-96,89,-51) d=12.0mm
+    iter  1  RMS=0.2062°C  mu=3.0e-03  β=(-87.7,88.0,-58.4,2.1)
+    iter  2  RMS=0.2061°C  mu=9.0e-04  β=(-28.2,81.6,-87.0,3.4)
+    iter  3  RMS=0.2038°C  mu=2.7e-04  β=(-72.9,60.5,-80.2,5.2)
+    iter  4  RMS=0.1985°C  mu=2.0e-02  β=(-54.2,71.7,-98.9,6.6)
+    iter  5  RMS=0.1827°C  mu=5.9e-03  β=(-82.3,84.5,-94.8,7.2)
+    iter  6  RMS=0.1547°C  mu=1.4e-01  β=(-81.6,85.1,-103.6,11.9)
+    iter  7  RMS=0.0231°C  mu=4.3e-02  β=(-97.0,86.7,-123.0,11.9)
+    iter  8  RMS=0.0035°C  mu=1.3e-02  β=(-96.3,87.7,-122.9,11.5)
+    iter  9  RMS=0.0006°C  mu=3.9e-03  β=(-96.3,87.9,-123.0,11.4)
+    → ✓ MALIGNANT  pos_err=0.0mm  d_err=0.0mm  RMS=5.71e-04  56 solves  264s
+  Patient_179 done in 40.7 min
+
+Finished 2 patients in 86.7 min.
+CSV: 20 rows | 20 successful scenarios
+Position error: mean=17.6mm  max=144.8mm  p95=77.8mm
+Diameter error: mean=11.3mm  max=110.7mm
+Verdicts (should all be MALIGNANT): {'MALIGNANT': 16, 'BENIGN': 4}
+Output → /mnt/Data1/Peoples/faiz836b/DNP-3DDMR-IR/finalized/lm_results/lm_synthetic_20260623_010523.csv
