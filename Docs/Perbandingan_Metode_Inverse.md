@@ -73,7 +73,7 @@ pada data sintetis (galat posisi ~1 mm), sehingga keterbatasan ini bersumber
 pada kesenjangan model–data, bukan pada algoritma inverse itu sendiri.
 
 ---
-*Sumber data: `finalized/lm_results/lm_real_subset.csv`,
+*Sumber data: `finalized/Stage 4/lm_real_subset.csv`,
 `TherMAM-NeRF/results/cohort_BCfix_ALL.csv`.
-Gambar: `finalized/lm_results/figs/fig6_method_compare.png`.
-Skrip: `finalized/lm_results/make_thesis_plots.py`.*
+Gambar: `finalized/Stage 4/figs/fig6_method_compare.png`.
+Skrip: `finalized/Stage 4/make_thesis_plots.py`.*
