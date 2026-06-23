@@ -231,9 +231,28 @@ ensemble_probs = mean([sigmoid(model_k(img)) for model_k in model_ensemble])
 pred_bin = (ensemble_probs > 0.5).float()
 ```
 
+After rerunning the fixed notebook (K-fold restricted to `train_set`), the
+5-fold validation Dice settled at **0.895 ± 0.021** (from `unet_fold_*.pth`
+checkpoints), and the sealed 36-sample test set gave:
+
 | Metric | Value |
 |---|---|
-| Ensemble Test Dice | TBD after rerun of fixed notebook |
-| Ensemble Test IoU | TBD after rerun of fixed notebook |
+| Ensemble Test Dice (weighted over 36 images) | **0.906** |
+
+Per-view breakdown (Tabel 4.4):
+
+| View | n | Dice (mean ± std) |
+|---|---|---|
+| Anterior (Front) | 7 | 0.923 ± 0.037 |
+| Right Oblique (45°) | 8 | 0.939 ± 0.022 |
+| Left Oblique (45°) | 7 | 0.921 ± 0.022 |
+| Right Lateral (90°) | 8 | 0.868 ± 0.083 |
+| Left Lateral (90°) | 6 | 0.878 ± 0.084 |
+| **Overall** | **36** | **0.906** |
+
+> Source: `finalized/Stage 2/Tabel_4_4_Dice_Score_UNet_Set_Uji.csv`,
+> `finalized/Stage 2/unet_training_history/fold_*_history.json`. A
+> thesis-ready Indonesian write-up of method + results is in
+> `Docs/Stage2_Hasil_Metode_Segmentasi.md`.
 
 The per-view breakdown (Table 4.4) is computed exclusively over the 36 held-out test masks (`test_mask_paths = {full_dataset.mask_paths[i] for i in test_set.indices}`), ensuring no training samples inflate the reported per-view numbers.
