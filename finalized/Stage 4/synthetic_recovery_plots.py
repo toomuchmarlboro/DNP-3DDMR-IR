@@ -7,6 +7,7 @@ views, plus per-quadrant recovery-error metrics.
 Input : Stage 4/lm_synthetic_20260623_010523.csv
 Output: Stage 4/figs/syn_recovery_multiview.png
         Stage 4/figs/syn_recovery_metrics.png
+    Stage 4/figs/syn_solve_speed.png
 Run   : conda activate bioheat && python "Stage 4/synthetic_recovery_plots.py"
 """
 import numpy as np
@@ -27,6 +28,7 @@ plt.rcParams.update({
 s = pd.read_csv(CSV)
 SUCC = 5.0   # mm — position-error success threshold
 s['ok'] = s.pos_err_mm < SUCC
+s['solve_speed'] = 60.0 * s.n_solves / s.time_s
 QC = {'UI': '#2c7fb8', 'UO': '#d7301f', 'C': '#238b45', 'LI': '#984ea3', 'LO': '#ff7f00'}
 
 
@@ -140,13 +142,42 @@ def fig_metrics():
     print('  saved figs/syn_recovery_metrics.png')
 
 
+def fig_speed():
+    fig, ax = plt.subplots(figsize=(14, 4.8))
+
+    sv = s.sort_values(['patient_id', 'scenario']).reset_index(drop=True)
+    x = np.arange(len(sv))
+    colors = [QC.get(q, 'gray') for q in sv.quad]
+
+    ax.bar(x, sv.time_s, color=colors, edgecolor='k', lw=0.3)
+    ax.axhline(s.time_s.mean(), ls='--', c='k', lw=1,
+               label=f'overall mean = {s.time_s.mean():.1f} s/scenario')
+    ax.axhline(s.time_s.median(), ls=':', c='dimgray', lw=1,
+               label=f'median = {s.time_s.median():.1f} s/scenario')
+    ax.set_ylabel('Wall-clock time per scenario (s)')
+    ax.set_xlabel('scenario (ordered by patient, SC)')
+    ax.set_title('Scenario runtime')
+    ax.set_xticks(x)
+    ax.set_xticklabels([f'{pid.split("_")[1]}-S{int(sc):02d}' for pid, sc in zip(sv.patient_id, sv.scenario)],
+                       rotation=60, ha='right', fontsize=8)
+    ax.legend(frameon=False, fontsize=9, loc='upper right')
+
+    fig.suptitle('Synthetic LM compute time per scenario', y=1.02, fontsize=13)
+    fig.tight_layout()
+    fig.savefig(OUT / 'syn_solve_speed.png')
+    plt.close(fig)
+    print('  saved figs/syn_solve_speed.png')
+
+
 if __name__ == '__main__':
     print(f'Reading {CSV.name}')
     fig_multiview(); fig_metrics()
+    fig_speed()
     # headline numbers
     wp = s[s.quad.isin(['UI', 'C', 'LI'])]
     print(f'\nMedian pos_err (all)     : {s.pos_err_mm.median():.2f} mm')
     print(f'Median d_err   (all)     : {s.d_err_mm.median():.2f} mm')
+    print(f'Average scenario time     : {s.time_s.mean():.1f} s')
     print(f'UI quadrant pos_err mean : {s[s.quad=="UI"].pos_err_mm.mean():.2f} mm')
     print(f'Success (<5mm)           : {int(s.ok.sum())}/{len(s)}')
     print('Done.')

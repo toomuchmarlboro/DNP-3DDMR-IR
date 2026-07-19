@@ -107,6 +107,7 @@ def pennes_forward(msh_path, beta, geo, const=PAPER):
     bc   = fem.dirichletbc(np.float64(Ta),
                            fem.locate_dofs_topological(Vs, fdim, ext[post]), Vs)
 
+    # Robin BC defined here
     a = (k_h*ufl.inner(ufl.grad(T), ufl.grad(v)) + P*T*v)*ufl.dx + h_*T*v*ufl.ds
     L = (P*Ta + Q)*v*ufl.dx + h_*Ta_*v*ufl.ds
     try:
